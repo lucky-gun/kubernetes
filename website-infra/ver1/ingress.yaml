@@ -1,0 +1,41 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: my-app-ingress
+  namespace: project2
+  annotations:
+    #cert-manager.io/cluster-issuer: "letsencrypt-prod"  # 이 줄은 인증서와 관련된 부분이므로 삭제 가능합니다.
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"  # SSL 리디렉션 비활성화
+    nginx.ingress.kubernetes.io/rewrite-target: "/"  # 경로 리디렉션을 /로 설정
+spec:
+  ingressClassName: project2
+  rules:
+  - host: "lucky-gun.com"  # 설정한 도메인
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: nginx  # nginx 서비스를 외부에 노출
+            port:
+              number: 80
+      - path: /util
+        pathType: Prefix
+        backend:
+          service:
+            name: flask  # flask 서비스를 외부에 노출
+            port:
+              number: 80
+      - path: /blog
+        pathType: Prefix
+        backend:
+          service:
+            name: wordpress  # wordpress 서비스를 외부에 노출
+            port:
+              number: 80
+                #  tls:
+                #- hosts:
+                #- "lucky-gun.com"
+                #secretName: my-app-tls
+                #externaltrafficpolicy 문제 가능성 확인

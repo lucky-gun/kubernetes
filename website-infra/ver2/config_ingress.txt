@@ -1,0 +1,4 @@
+kubectl create namespace ingress-nginx
+#kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
+kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.11.0/cert-manager.yaml
+kubectl --kubeconfig=$KUBE_CONFIG apply -f https://raw.githubusercontent.com/kakaoicloud-guide/kubernetes-engine/main/guide-samples/settingIC/ingress-nginx/controller-v1.3.1/deploy.yml

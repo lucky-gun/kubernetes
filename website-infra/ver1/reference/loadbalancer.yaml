@@ -1,0 +1,14 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: default-http-nginx-service
+  annotations:
+    service.beta.kubernetes.io/openstack-internal-load-balancer: "true"
+spec:
+  selector:
+    app: nginx
+  type: LoadBalancer
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80

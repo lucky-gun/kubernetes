@@ -1,0 +1,13 @@
+# pvc-test.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-test
+  namespace: project2
+spec:
+  accessModes:
+  - ReadWriteMany #ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: csi-cinder-sc-delete

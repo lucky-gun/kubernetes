@@ -1,0 +1,2 @@
+helm repo add nfs-subdir-external-provisioner https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner/
+helm install --kubeconfig=$KUBE_CONFIG nfs-subdir-external-provisioner nfs-subdir-external-provisioner/nfs-subdir-external-provisioner --set nfs.server=[File Storage IP] --set nfs.path=[File Storage Mount Path]

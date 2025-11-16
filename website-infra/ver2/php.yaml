@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: php-deploy
+  namespace: project2
+  labels:
+    tier: php-back
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: php-deploy
+      tier: php-back
+  template:
+    metadata:
+      labels:
+        app: php-deploy
+        tier: php-back
+    spec:
+      containers:
+      - name: project-php
+        image: php:7.4-fpm
+        volumeMounts:
+        - name: pvc-vol
+          mountPath: /var/www/html
+          subPath: html
+      volumes:
+      - name: pvc-vol
+        persistentVolumeClaim:
+          claimName: test-claim
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: php-service
+  namespace: project2
+  labels:
+    tier: php-back
+spec:
+  selector:
+    app: php-deploy
+    tier: php-back
+  ports:
+  - port: 9000

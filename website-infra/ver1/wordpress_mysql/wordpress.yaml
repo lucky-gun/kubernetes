@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wordpress-deploy
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: wordpress-deploy
+      tier: wordpress-front
+  template:
+    metadata:
+      labels:
+        app: wordpress-deploy
+        tier: wordpress-front
+    spec:
+      volumes:
+      - name: pvc-vol-wordpress
+        persistentVolumeClaim:
+          claimName: pvc-dynamic
+      containers:
+      - name: wordpress
+        image: wordpress:latest
+        #volumeMounts:
+          #- name: pvc-vol-wordpress
+          #mountPath: /var/www/html
+          #subPath: wordpress
+        env:
+        - name: TZ
+          value: Asia/Seoul
+        - name: WORDPRESS_DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: db-info
+              key: host
+        - name: WORDPRESS_DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: db-info
+              key: user
+        - name: WORDPRESS_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-info
+              key: password
+        - name: WORDPRESS_DB_NAME
+          valueFrom:
+            secretKeyRef:
+              name: db-info
+              key: database
+        ports:
+        - containerPort: 80
+          name: wordpress
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wordpress
+  labels:
+    tier: backend
+spec:
+  selector:
+    app: wordpress-deploy
+    tier: wordpress-front
+  ports:
+  - port: 80
+      #ports:
+      #- port: 80
+      #nodePort: 30000
+      #targetPort: 80
+      #type: NodePort

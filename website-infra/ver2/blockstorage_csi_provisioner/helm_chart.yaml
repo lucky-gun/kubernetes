@@ -1,0 +1,6 @@
+helm repo add cpo https://kubernetes.github.io/cloud-provider-openstack
+helm install cinder-csi cpo/openstack-cinder-csi \
+    --version 2.3.0 \
+    --set secret.enabled=true \
+    --set secret.name=cloud-config \
+    --namespace kube-system

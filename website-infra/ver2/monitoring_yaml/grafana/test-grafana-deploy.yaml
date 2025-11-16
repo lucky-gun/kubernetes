@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: monitoring
+  name: grafana-dashboard-config
+data:
+  dashboards.yaml: |
+    apiVersion: 1
+    providers:
+      - name: 'default'
+        orgId: 1
+        folder: ''
+        type: file
+        disableDeletion: false
+        updateInterval: 10s
+        options:
+          path: /etc/grafana/provisioning/dashboards
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: monitoring
+  name: grafana-root-url-config
+data:
+  grafana.ini: |
+    [server]
+    root_url = %(protocol)s://%(domain)s:%(http_port)s/grafana/
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: monitoring
+  labels:
+    app: grafana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+        - name: grafana
+          image: grafana/grafana:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: GF_SERVER_ROOT_URL
+              value: "/grafana"
+          volumeMounts:
+            - name: config-dashboard-volume
+              mountPath: /etc/grafana/provisioning/dashboards
+            - name: config-root-url-volume
+              mountPath: /etc/grafana/
+                #- name: data-volume
+                #mountPath: /var/lib/grafana
+      volumes:
+        - name: config-dashboard-volume
+          configMap:
+            name: grafana-dashboard-config
+        - name: config-root-url-volume
+          configMap:
+            name: grafana-root-url-config
+              #- name: data-volume
+              #persistentVolumeClaim:
+              #claimName: grafana-pvc
+

@@ -1,0 +1,79 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+data:
+  default.conf: |
+        server {
+        listen 80;
+        listen [::]:80;
+        index index.html index.php index.htm; #순서대로 읽습니다.
+        server_name localhost;
+        error_log  /var/log/nginx/error.log;
+        access_log /var/log/nginx/access.log;
+        root /var/www/html;
+ 
+        location ~ \.php$ { #해당 파일의 읽으려고 하는 경우, 해당 pass로 보냅니다. php컨테이너로 보냅니다.
+                try_files $uri =404;
+                fastcgi_split_path_info ^(.+\.php)(/.+)$;
+                fastcgi_pass php:9000; #해당 포트는 기본 포트입니다.
+                fastcgi_index index.php;
+                include fastcgi_params;
+                fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+                fastcgi_param PATH_INFO $fastcgi_path_info;
+        }
+        }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deploy
+  labels:
+    tier: nginx-front
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx-deploy
+      tier: nginx-front
+  template:
+    metadata:
+      labels:
+        app: nginx-deploy
+        tier: nginx-front
+    spec:
+      volumes:
+      - name: nginx-config-volume
+        configMap:
+          name: nginx-config
+      - name: pvc-vol
+        persistentVolumeClaim:
+          claimName: pvc-dynamic
+      containers:
+      - name: nginx
+        image: nginx:latest
+        volumeMounts:
+        - name: nginx-config-volume
+          mountPath: /etc/nginx/conf.d
+        - name: pvc-vol
+          mountPath: /var/www/html
+          subPath: html
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+  labels:
+    tier: backend
+spec:
+  selector:
+    app: nginx-deploy
+    tier: nginx-front
+  ports:
+  - port: 80
+    targetPort: 80
+  type: ClusterIP
+      #nodePort: 30010
+      #targetPort: 80
+      #type: NodePort
+

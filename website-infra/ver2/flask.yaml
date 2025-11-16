@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flask-deploy
+  namespace: project2
+  labels:
+    tier: flask-front
+spec:
+  replicas: 3
+  selector: 
+    matchLabels:
+      app: flask-deploy
+      tier: flask-front
+  template:
+    metadata:
+      labels:
+        app: flask-deploy
+        tier: flask-front
+    spec:
+      containers:
+      - name: flask-project
+        image: luckygun/docker-project1:flask
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flask-service
+  namespace: project2
+spec:
+  selector:
+    app: flask-deploy
+    tier: flask-front
+  ports:
+  - port: 80
+    #  nodePort: 30020
+    #targetPort: 80
+    #type: NodePort
