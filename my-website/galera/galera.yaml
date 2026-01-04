@@ -1,0 +1,33 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+  namespace: database
+spec:
+  replicas: 2
+  replicasAllowEvenNumber: true
+  
+  rootPasswordSecretKeyRef:
+    name: mariadb-secret
+    key: password
+                                                                                                                                                                                 
+  myCnfConfigMapKeyRef:
+    name: mariadb-config
+    key: my.cnf
+
+  # volumeMounts와 volumes를 지웠습니다. (충돌 방지)
+
+  galera:
+    enabled: true
+    sst: mariabackup
+    primary:
+      podIndex: 0
+    recovery:
+      enabled: true
+                                                                                                                                                                                 
+  storage:
+    size: 10Gi
+    storageClassName: rook-ceph-block
+    volumeClaimTemplate:
+      accessModes:
+        - ReadWriteOnce

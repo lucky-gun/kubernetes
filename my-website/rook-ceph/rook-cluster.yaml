@@ -1,0 +1,39 @@
+# cluster.yaml
+apiVersion: ceph.rook.io/v1
+kind: CephCluster
+metadata:
+  name: rook-ceph
+  namespace: rook-ceph
+spec:
+  cephVersion:
+    image: quay.io/ceph/ceph:v18.2.0   # Reef LTS
+
+  dataDirHostPath: /var/lib/rook  # 이때 Worker node의 VM에서는 미리 해당 디렉토리가 있어야하며 167 권한이 있어야합니다.
+
+  mon:
+    count: 1
+    allowMultiplePerNode: false
+
+  mgr:
+    count: 2
+
+  dashboard:
+    enabled: true
+
+  storage:
+    useAllNodes: false
+    useAllDevices: false
+    nodes:
+      - name: w1-k8s
+        devices:
+          - name: sdb  # 미리 VM 생성 시 추가 저장소 (10G)를 붙여서 생성을 진행해야합니다.
+      - name: w2-k8s
+        devices:
+          - name: sdb
+          
+  healthCheck:
+    daemonHealth:
+      mon:
+        interval: 45s
+      osd:
+        interval: 60s
