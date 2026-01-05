@@ -1,0 +1,44 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: custom-node-alerts
+  namespace: monitoring # prometheus-stack이 설치된 네임스페이스
+  labels:
+    release: kube-prometheus-stack # 중요: Helm 배포명과 일치해야 인식됨
+spec:
+  groups:
+  - name: node_status_alerts_custom
+    rules:
+      # 외부 타겟(lucky-gun.com 등)을 위해 이 룰은 유지하는 것이 좋습니다.
+      - alert: HostDownCustom
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: infra
+        annotations:
+          summary: "Instance {{ $labels.instance }} down"
+          description: "Prometheus could not scrape {{ $labels.job }} on {{ $labels.instance }} for 2 minutes."
+
+  - name: node_resource_alerts_custom
+    rules:
+      # 기본 룰이 있지만, 85%라는 명확한 기준을 유지하고 싶을 때 사용
+      - alert: HighCPUUsageCustom
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: infra
+        annotations:
+          summary: "High CPU on {{ $labels.instance }}"
+          description: "CPU usage > 85% for 5m"
+
+      - alert: DiskSpaceLowCustom
+        expr: (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"}) < 0.1
+        for: 10m
+        labels:
+          severity: warning
+          service: infra
+        annotations:
+          summary: "Low disk space on {{ $labels.instance }}"
+          description: "Free disk space < 10% for 10m"

@@ -1,0 +1,9 @@
+kind: Middleware
+metadata:
+  name: redirect-www-to-apex
+  namespace: traefik
+spec:
+  redirectRegex:
+    regex: "^https?://www\\.lucky-gun\\.com(.*)"
+    replacement: "https://lucky-gun.com$1"
+    permanent: true

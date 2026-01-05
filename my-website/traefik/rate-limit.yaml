@@ -1,0 +1,9 @@
+kind: Middleware
+metadata:
+  name: global-rate-limit
+  namespace: traefik
+spec:
+  rateLimit:
+    average: 200
+    burst: 600
+    period: 1s

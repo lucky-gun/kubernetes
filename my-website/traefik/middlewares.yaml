@@ -1,0 +1,16 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: security-headers
+  namespace: traefik
+spec:
+  headers:
+    sslRedirect: true
+
+    # HSTS – 보수적 기본값
+    stsSeconds: 31536000
+    stsIncludeSubdomains: false
+    stsPreload: false
+
+    # 기본적인 MIME 보호
+    contentTypeNosniff: true
