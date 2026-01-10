@@ -1,0 +1,30 @@
+# 1. 관리자 계정 (Secret으로 관리됨)
+admin:
+  existingSecret: "grafana-admin-secret"
+  userKey: user
+  passwordKey: password
+
+# 2. Grafana 내부 설정
+grafana.ini:
+  server:
+    domain: grafana.lucky-gun.com
+    root_url: https://grafana.lucky-gun.com/
+  auth.anonymous:
+    enabled: true
+    org_name: "Main Org."
+    org_role: "Viewer"
+  users:
+    allow_sign_up: false
+  security:
+    allow_embedding: true
+
+# 3. Traefik Ingress 설정 (여기서 도메인을 한 번 더 정의)
+ingress:
+  enabled: true
+  ingressClassName: traefik  # 설치하신 traefik의 클래스명 확인
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+  hosts:
+    - grafana.lucky-gun.com
+  path: /

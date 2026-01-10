@@ -4,7 +4,7 @@ metadata:
   name: mariadb-galera
   namespace: database
 spec:
-  replicas: 2
+  replicas: 3
   replicasAllowEvenNumber: true
   
   rootPasswordSecretKeyRef:
