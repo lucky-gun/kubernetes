@@ -1,0 +1,26 @@
+## 단 설정 전 충돌날 수 있으니 충돌나는 부분있는지 확인할 것
+
+$wgMainCacheType    = CACHE_ACCEL;
+$wgMessageCacheType = CACHE_ACCEL;
+
+# Redis 백엔드 정의 (php-redis 필수)
+$wgObjectCaches['redis'] = [
+  'class' => 'RedisBagOStuff',
+  'servers' => [ '10.0.2.100:6379' ],
+  'password' => getenv('MW_REDIS_PASSWORD') ?: null,
+  'serializer' => 'igbinary',   // Dockerfile에서 igbinary를 설치했을 때만 남기세요
+  'compress' => 'gzip',
+];
+
+# 세션/파서캐시/스태시/잡큐를 Redis로
+$wgSessionCacheType = 'redis';
+$wgParserCacheType  = 'redis';
+$wgMainStash        = 'redis';
+$wgJobTypeConf['default'] = [
+  'class' => 'JobQueueRedis',
+  'redisServer' => '10.0.2.100:6379',
+  'redisConfig' => [ 'password' => getenv('MW_REDIS_PASSWORD') ?: null ],
+];
+
+$wgLocaltimezone = 'Asia/Seoul';
+$wgDefaultUserOptions['timecorrection'] = 'ZoneInfo|0|' . $wgLocaltimezone;

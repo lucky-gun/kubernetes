@@ -5,7 +5,7 @@ metadata:
   namespace: database
 spec:
   replicas: 3
-  replicasAllowEvenNumber: true
+  replicasAllowEvenNumber: false
   
   rootPasswordSecretKeyRef:
     name: mariadb-secret

@@ -1,0 +1,30 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: wordpress-ingress
+  namespace: infra
+spec:
+  entryPoints:
+    - web
+  routes:
+  #- match: Host(`your-domain.com`) # 실제 도메인
+  - match: HostRegexp(`{host:.+}`)  
+    kind: Rule
+    services:
+    - name: wordpress-service # 위에서 만든 서비스 이름
+      namespace: infra
+      port: 80
+    middlewares:
+      #- name: redirect-www-to-apex
+      #  namespace: infra
+      - name: security-headers
+        namespace: traefik
+      #- name: only-cloudflare
+      #  namespace: traefik
+      - name: global-rate-limit
+        namespace: traefik
+  #tls:
+   # certResolver: myresolver
+    #options:
+    #  name: default
+    #  namespace: traefik

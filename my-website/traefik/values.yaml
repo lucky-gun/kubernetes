@@ -4,15 +4,30 @@
 
 # 1. Deployment 설정
 deployment:
+  initContainers:
+    - name: fix-acme-permissions
+      image: busybox:latest
+      command: ["sh", "-c", "touch /etc/traefik/letsencrypt/acme.json && chmod -v 600 /etc/traefik/letsencrypt/acme.json"]
+      volumeMounts:
+        - name: data # 위의 persistence.name과 일치해야 함
+          mountPath: /etc/traefik/letsencrypt
   enabled: true
   replicas: 1 # 가용성을 위해 2 이상 권장하나, 테스트 시 1로 시작
 
 # 2. 서비스 포트 및 Cloudflare 신뢰 설정 (핵심)
 ports:
   web:
-    port: 80
-    expose: true
+    port: 8000
+    expose:
+      default: true
     exposedPort: 80
+    # --- 수정된 부분 ---
+    #redirections:
+    #  entryPoint:
+    #    to: websecure
+    #    scheme: https
+    #    permanent: true
+    # ------------------
     forwardedHeaders:
       trustedIPs: &cloudflare_ips
         - "173.245.48.0/20"
@@ -30,11 +45,13 @@ ports:
         - "104.24.0.0/14"
         - "172.64.0.0/13"
         - "131.0.72.0/22"
-
+                                                                                                                                                                
   websecure:
-    port: 443
-    expose: true
+    port: 8443
+    expose:
+      default: true
     exposedPort: 443
+    # HTTP3/QUIC 등을 쓰실 계획이라면 여기에 설정을 추가할 수 있습니다.
     forwardedHeaders:
       trustedIPs: *cloudflare_ips
 
@@ -59,7 +76,7 @@ persistence:
   name: data
   path: /etc/traefik/letsencrypt
   size: 1Gi
-  # storageClass: "rook-ceph-block" # 사용하는 스토리지 클래스명 확인 필요
+  storageClass: "rook-ceph-block" # 사용하는 스토리지 클래스명 확인 필요
 
 # 5. Cloudflare DNS API 인증 설정
 env:
@@ -71,7 +88,7 @@ env:
 
 # 6. Static Config (CertResolvers 등)
 additionalArguments:
-  - "--certificatesresolvers.myresolver.acme.email=your-email@example.com"
+  - "--certificatesresolvers.myresolver.acme.email=fallsky104@gmail.com"
   - "--certificatesresolvers.myresolver.acme.storage=/etc/traefik/letsencrypt/acme.json"
   - "--certificatesresolvers.myresolver.acme.dnschallenge.provider=cloudflare"
   - "--certificatesresolvers.myresolver.acme.dnschallenge.resolvers=1.1.1.1:53,8.8.8.8:53"
@@ -80,3 +97,7 @@ additionalArguments:
 api:
   dashboard: true
   insecure: false # IngressRoute로 별도 노출 권장
+
+providers:
+  kubernetesCRD:
+    allowCrossNamespace: true
