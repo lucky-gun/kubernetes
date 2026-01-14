@@ -1,0 +1,59 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: wordpress-ingress
+  namespace: infra
+spec:
+  entryPoints:
+    - websecure
+  routes:
+  - match: Host(`lucky-gun.com`) || Host(`www.lucky-gun.com`) # 실제 도메인
+    kind: Rule
+    services:
+    - name: wordpress-service # 위에서 만든 서비스 이름
+      namespace: infra
+      port: 80
+    middlewares:
+      - name: redirect-www-to-apex
+        namespace: infra
+      - name: security-headers
+        namespace: traefik
+      #- name: only-cloudflare
+      #  namespace: traefik
+      - name: global-rate-limit
+        namespace: traefik
+  tls:
+    certResolver: myresolver
+    options:
+      name: infra-tls
+      namespace: traefik
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: nextcloud-ingress
+  namespace: infra
+spec:
+  entryPoints:
+    - websecure
+  routes:
+  - match: Host(`cloud.lucky-gun.com`) # 실제 도메인
+    kind: Rule
+    services:
+    - name: nextcloud-service # 위에서 만든 서비스 이름
+      namespace: infra
+      port: 80
+    middlewares:
+      - name: redirect-www-to-apex
+        namespace: infra
+      - name: security-headers
+        namespace: traefik
+      #- name: only-cloudflare
+      #  namespace: traefik
+      - name: global-rate-limit
+        namespace: traefik
+  tls:
+    certResolver: myresolver
+    options:
+      name: infra-tls
+      namespace: traefik

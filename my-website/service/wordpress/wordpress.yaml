@@ -6,7 +6,7 @@ metadata:
   labels:
     app: wordpress
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       app: wordpress
@@ -46,6 +46,13 @@ spec:
             configMapKeyRef:
               name: wordpress-config
               key: wp_tz
+        volumeMounts:
+        - name: wp-data
+          mountPath: /var/www/html
+      volumes:
+      - name: wp-data
+        persistentVolumeClaim:
+          claimName: wp-shared-pvc
 ---
 apiVersion: v1
 kind: Service

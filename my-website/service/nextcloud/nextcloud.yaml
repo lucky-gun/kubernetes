@@ -1,0 +1,103 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nextcloud
+  namespace: infra
+  labels:
+    app: nextcloud
+spec:
+  replicas: 1   # 🔹 여기만 나중에 3으로 변경
+  selector:
+    matchLabels:
+      app: nextcloud
+  template:
+    metadata:
+      labels:
+        app: nextcloud
+    spec:
+      imagePullSecrets:
+        - name: regcred
+
+      # CephFS 권한 보조
+      securityContext:
+        fsGroup: 33
+
+      ################################
+      # 1️⃣ PVC 권한 초기화 initContainer
+      ################################
+      initContainers:
+        - name: init-nextcloud-permissions
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              echo "[init] create directories"
+              mkdir -p /var/www/html/data \
+                       /var/www/html/config \
+                       /var/www/html/custom_apps \
+                       /var/www/html/themes
+
+              echo "[init] fix permissions"
+              chown -R 33:33 /var/www/html
+              chmod -R 750 /var/www/html
+
+              echo "[init] done"
+          volumeMounts:
+            - name: nextcloud-storage
+              mountPath: /var/www/html
+
+      ############################
+      # 2️⃣ Nextcloud 컨테이너
+      ############################
+      containers:
+        - name: nextcloud
+          image: luckygun/nextcloud:myblog-beta
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - containerPort: 80
+
+          # 🔹 env는 여기서 직접 쓰지 않음
+          envFrom:
+            - secretRef:
+                name: nextcloud-secrets
+            - configMapRef:
+                name: nextcloud-config
+
+          volumeMounts:
+            - name: nextcloud-storage
+              mountPath: /var/www/html/data
+              subPath: data
+
+            - name: nextcloud-storage
+              mountPath: /var/www/html/config
+              subPath: config
+
+            - name: nextcloud-storage
+              mountPath: /var/www/html/custom_apps
+              subPath: custom_apps
+
+            - name: nextcloud-storage
+              mountPath: /var/www/html/themes
+              subPath: themes
+
+      ############################
+      # 3️⃣ RWX PVC
+      ############################
+      volumes:
+        - name: nextcloud-storage
+          persistentVolumeClaim:
+            claimName: nc-shared-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nextcloud-service
+  namespace: infra
+spec:
+  selector:
+    app: nextcloud
+  ports:
+    - port: 80
+      targetPort: 80

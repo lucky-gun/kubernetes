@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notify-push
+  namespace: infra
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notify-push
+  template:
+    metadata:
+      labels:
+        app: notify-push
+    spec:
+      containers:
+        - name: notify-push
+          image: ghcr.io/nextcloud/notify_push:latest
+          env:
+            - name: NEXTCLOUD_URL
+              value: http://nextcloud.infra.svc.cluster.local
+          args:
+            - /var/www/html/config/config.php
+          ports:
+            - containerPort: 7867
+          volumeMounts:
+            - name: nc-config
+              mountPath: /var/www/html/config
+              readOnly: true
+      volumes:
+        - name: nc-config
+          persistentVolumeClaim:
+            claimName: nextcloud-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notify-push
+  namespace: infra
+spec:
+  selector:
+    app: notify-push
+  ports:
+    - port: 7867
+      targetPort: 7867

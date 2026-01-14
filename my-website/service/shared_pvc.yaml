@@ -1,0 +1,38 @@
+# 1. WordPress용
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: wp-shared-pvc
+  namespace: infra
+spec:
+  accessModes: ["ReadWriteMany"]
+  storageClassName: rook-cephfs # 아까 바꾼 이름이 있다면 적용
+  resources:
+    requests:
+      storage: 5Gi
+---
+# 2. MediaWiki용
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mw-shared-pvc
+  namespace: infra
+spec:
+  accessModes: ["ReadWriteMany"]
+  storageClassName: rook-cephfs
+  resources:
+    requests:
+      storage: 5Gi
+---
+# 3. Nextcloud용
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nc-shared-pvc
+  namespace: infra
+spec:
+  accessModes: ["ReadWriteMany"]
+  storageClassName: rook-cephfs
+  resources:
+    requests:
+      storage: 5Gi
