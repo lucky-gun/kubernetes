@@ -1,7 +1,7 @@
 apiVersion: ceph.rook.io/v1
 kind: CephFilesystem
 metadata:
-  name: my-shared-fs
+  name: rook-cephfs
   namespace: rook-ceph
 spec:
   # 메타데이터 서버(MDS) 설정: 고가용성을 위해 2개를 띄우되 1개는 대기(Standby)
