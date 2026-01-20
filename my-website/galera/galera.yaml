@@ -26,7 +26,7 @@ spec:
       enabled: true
                                                                                                                                                                                  
   storage:
-    size: 10Gi
+    size: 5Gi
     storageClassName: rook-ceph-block
     volumeClaimTemplate:
       accessModes:

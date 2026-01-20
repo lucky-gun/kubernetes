@@ -29,6 +29,12 @@ CREATE DATABASE mediawiki_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE USER IF NOT EXISTS 'wiki_admin'@'%' IDENTIFIED BY 'wiki_pass';
 GRANT ALL PRIVILEGES ON mediawiki_db.* TO 'wiki_admin'@'%';
 
+-- Grafana 초기화
+DROP DATABASE IF EXISTS grafana_db;
+CREATE DATABASE grafana_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS 'gf_admin'@'%' IDENTIFIED BY 'gf_pass';
+GRANT ALL PRIVILEGES ON grafana_db.* TO 'gf_admin'@'%';
+
 FLUSH PRIVILEGES;
 EOF
 )

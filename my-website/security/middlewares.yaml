@@ -1,0 +1,223 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: ip-whitelist
+  namespace: traefik
+spec:
+  ipAllowList:
+    sourceRange:
+      - "116.37.149.145/32"
+    ipStrategy:
+      excludedIPs:
+        - "173.245.48.0/20"
+        - "103.21.244.0/22"
+        - "103.22.200.0/22"
+        - "103.31.4.0/22"
+        - "141.101.64.0/18"
+        - "108.162.192.0/18"
+        - "190.93.240.0/20"
+        - "188.114.96.0/20"
+        - "197.234.240.0/22"
+        - "198.41.128.0/17"
+        - "162.158.0.0/15"
+        - "104.16.0.0/13"
+        - "104.24.0.0/14"
+        - "172.64.0.0/13"
+        - "131.0.72.0/22"
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: only-cloudflare
+  namespace: traefik
+spec:
+  ipAllowList:
+    sourceRange:
+      - "173.245.48.0/20"
+      - "103.21.244.0/22"
+      - "103.22.200.0/22"
+      - "103.31.4.0/22"
+      - "141.101.64.0/18"
+      - "108.162.192.0/18"
+      - "190.93.240.0/20"
+      - "188.114.96.0/20"
+      - "197.234.240.0/22"
+      - "198.41.128.0/17"
+      - "162.158.0.0/15"
+      - "104.16.0.0/13"
+      - "104.24.0.0/14"
+      - "172.64.0.0/13"
+      - "131.0.72.0/22"
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: security-headers
+  namespace: traefik
+spec:
+  headers:
+    sslRedirect: true
+    stsSeconds: 31536000
+    stsIncludeSubdomains: false
+    stsPreload: false
+    referrerPolicy: "same-origin"
+    contentTypeNosniff: true
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: global-rate-limit
+  namespace: traefik
+spec:
+  rateLimit:
+    average: 200
+    burst: 600
+    period: 1s
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: redirect-www-to-apex
+  namespace: infra
+spec:
+  redirectRegex:
+    regex: "^https?://www\\.(.*)"
+    replacement: "https://${1}"
+    permanent: true
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: crowdsec-bouncer
+  namespace: traefik
+spec:
+  plugin:
+    bouncer:
+      enabled: true
+      crowdsecMode: stream
+      crowdsecLapiScheme: http
+      crowdsecLapiHost: crowdsec-service.crowdsec.svc.cluster.local:8080
+      crowdsecLapiPath: "/"
+      # Key는 Secret mount + KeyFile 방식 권장
+      crowdsecLapiKeyFile: /etc/traefik/secrets/crowdsec/CROWDSEC_LAPI_KEY
+      # Cloudflare/LB 뒤면 trustedIPs 꼭 설정 (예시는 생략)
+      forwardedHeadersTrustedIPs:
+        - "173.245.48.0/20"
+        - "103.21.244.0/22"
+        - "103.22.200.0/22"
+        - "103.31.4.0/22"
+        - "141.101.64.0/18"
+        - "108.162.192.0/18"
+        - "190.93.240.0/20"
+        - "188.114.96.0/20"
+        - "197.234.240.0/22"
+        - "198.41.128.0/17"
+        - "162.158.0.0/15"
+        - "104.16.0.0/13"
+        - "104.24.0.0/14"
+        - "172.64.0.0/13"
+        - "131.0.72.0/22"
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: waf-crs
+  namespace: traefik
+spec:
+  plugin:
+    coraza:
+      crsEnabled: true
+      directives:
+        - SecRuleEngine On
+        - SecResponseBodyAccess Off
+        - SecAction "id:900110,phase:1,pass,nolog,setvar:tx.inbound_anomaly_score_threshold=10,setvar:tx.outbound_anomaly_score_threshold=4"
+        #- SecDebugLog /dev/stdout
+        #- SecDebugLogLevel 2
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: edge-base
+  namespace: traefik
+spec:
+  chain:
+    middlewares:
+      - name: only-cloudflare
+      - name: security-headers
+      - name: global-rate-limit
+      - name: crowdsec-bouncer
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: edge-admin
+  namespace: traefik
+spec:
+  chain:
+    middlewares:
+      - name: only-cloudflare
+      - name: ip-whitelist
+      - name: security-headers
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: nc-wellknown-redirect
+  namespace: traefik
+spec:
+  redirectRegex:
+    regex: "^https?://([^/]+)/\\.well-known/(carddav|caldav)$"
+    replacement: "https://${1}/remote.php/dav"
+    permanent: true
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: nc-wellknown-redirect-webfinger
+  namespace: traefik
+spec:
+  redirectRegex:
+    regex: "^https?://([^/]+)/\\.well-known/(webfinger|nodeinfo)$"
+    replacement: "https://${1}/index.php/.well-known/${2}"
+    permanent: true
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: nc-wellknown-redirect-change-password
+  namespace: traefik
+spec:
+  redirectRegex:
+    regex: "^https?://([^/]+)/\\.well-known/change-password$"
+    replacement: "https://${1}/index.php/settings/user"
+    permanent: true
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: waf-wp-extras
+  namespace: traefik
+spec:
+  plugin:
+    coraza:
+      crsEnabled: false
+      directives:
+        - SecRuleEngine On
+        - SecRule REQUEST_URI "@streq /xmlrpc.php" "id:999120,phase:1,deny,status:403,log,msg:'Block WordPress XML-RPC'"
+---
+apiVersion: traefik.io/v1alpha1
+kind: TLSOption
+metadata:
+  name: infra-tls
+  namespace: traefik
+spec:
+  minVersion: VersionTLS12
+  cipherSuites:
+    - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 # ECDSA 추가
+    - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+    - TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
+    - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
+    - TLS_AES_128_GCM_SHA256 # TLS 1.3용
+    - TLS_AES_256_GCM_SHA384 # TLS 1.3용
+    - TLS_CHACHA20_POLY1305_SHA256 # TLS 1.3용
+  sniStrict: true

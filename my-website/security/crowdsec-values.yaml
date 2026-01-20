@@ -1,0 +1,15 @@
+# crowdsec-values.yaml (최소 동작 예시)
+container_runtime: containerd   # (k3s/containerd면 보통 이거)
+
+agent:
+  acquisition:
+    - namespace: traefik        # <- Traefik 설치된 네임스페이스로 변경
+      podName: traefik-*
+      program: traefik
+
+  # Traefik용 파서/컬렉션 활성화(권장)
+  env:
+    - name: COLLECTIONS
+      value: "crowdsecurity/traefik"
+      #value: "crowdsecurity/traefik crowdsecurity/wordpress crowdsecurity/nextcloud"
+

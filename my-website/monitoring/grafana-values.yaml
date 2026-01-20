@@ -1,30 +1,89 @@
-# 1. 관리자 계정 (Secret으로 관리됨)
-admin:
-  existingSecret: "grafana-admin-secret"
-  userKey: user
-  passwordKey: password
+replicas: 2
+# grafana-values.yaml
+ingress:
+  enabled: false
 
-# 2. Grafana 내부 설정
+persistence:
+  enabled: false
+#  type: pvc   ##만약 replicas=1일 경우,
+#  enabled: true
+#  size: 5Gi
+#  storageClassName: rook-ceph-block
+#  accessModes:
+#    - ReadWriteOnce
+
+admin:
+  existingSecret: grafana-admin
+  userKey: admin-user
+  passwordKey: admin-password
+
+envFromSecret: grafana-runtime
+podDisruptionBudget:
+  minAvailable: 1
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          topologyKey: kubernetes.io/hostname
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: grafana
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 3000
+
 grafana.ini:
   server:
     domain: grafana.lucky-gun.com
     root_url: https://grafana.lucky-gun.com/
+
   auth.anonymous:
     enabled: true
-    org_name: "Main Org."
-    org_role: "Viewer"
+    org_name: Main Org.
+    org_role: Viewer
+
   users:
     allow_sign_up: false
-  security:
-    allow_embedding: true
 
-# 3. Traefik Ingress 설정 (여기서 도메인을 한 번 더 정의)
-ingress:
-  enabled: true
-  ingressClassName: traefik  # 설치하신 traefik의 클래스명 확인
-  annotations:
-    traefik.ingress.kubernetes.io/router.entrypoints: websecure
-    traefik.ingress.kubernetes.io/router.tls: "true"
-  hosts:
-    - grafana.lucky-gun.com
-  path: /
+  security:
+    allow_embedding: false
+    cookie_samesite: lax
+    x_content_type_options: true
+    secret_key: $__env{GF_SECURITY_SECRET_KEY}
+
+  database:
+    type: mysql
+    host: mariadb-galera.database.svc.cluster.local:3306  # <-- 여기만 수정
+    name: grafana-db
+    user: gf-admin
+    password: $__env{GF_DATABASE_PASSWORD}
+    ssl_mode: disable
+
+# sidecar: dashboards/datasources 자동 주입
+sidecar:
+  dashboards:
+    enabled: true
+    label: grafana_dashboard
+    folder: /tmp/dashboards
+    folderAnnotation: k8s-sidecar-target-directory
+  datasources:
+    enabled: true
+    label: grafana_datasource
+
+# 대시보드 provider(폴더 지정)
+dashboardProviders:
+  dashboardproviders.yaml:
+    apiVersion: 1
+    providers:
+      - name: loki-dashboards
+        orgId: 1
+        folder: Loki
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /tmp/dashboards/loki

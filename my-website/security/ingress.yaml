@@ -1,0 +1,130 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: wordpress
+  namespace: infra
+spec:
+  entryPoints: 
+    - websecure
+  tls:
+    options:
+      name: infra-tls
+      namespace: traefik
+  routes:
+    - match: Host(`lucky-gun.com`) && (PathPrefix(`/wp-content/`) || PathPrefix(`/wp-includes/`))
+      kind: Rule
+      priority: 200
+      middlewares:
+        - name: edge-base
+          namespace: traefik
+      services:
+        - name: wordpress
+          port: 80
+
+    - match: Host(`lucky-gun.com`)
+      kind: Rule
+      priority: 100
+      middlewares:
+        - name: edge-base
+          namespace: traefik
+        - name: waf-crs
+          namespace: traefik
+        - name: waf-wp-extras
+          namespace: traefik
+      services:
+        - name: wordpress
+          port: 80
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: nextcloud
+  namespace: infra
+spec:
+  entryPoints:
+    - websecure
+  tls:
+    options:
+      name: infra-tls
+      namespace: traefik
+  routes:
+    - match: Host(`cloud.lucky-gun.com`) && PathPrefix(`/.well-known/`)
+      kind: Rule
+      priority: 300
+      middlewares:
+        - name: only-cloudflare
+          namespace: traefik
+        - name: security-headers
+          namespace: traefik
+        - name: nc-wellknown-redirect
+          namespace: traefik
+        - name: nc-wellknown-redirect-webfinger
+          namespace: traefik
+        - name: nc-wellknown-redirect-change-password
+          namespace: traefik
+      services:
+        - name: nextcloud
+          port: 80
+
+    - match: Host(`cloud.lucky-gun.com`)
+      kind: Rule
+      priority: 100
+      middlewares:
+        - name: edge-base
+          namespace: traefik
+        - name: waf-crs
+          namespace: traefik
+      services:
+        - name: nextcloud
+          port: 80
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: mediawiki
+  namespace: infra   # <-- 수정
+spec:
+  entryPoints:
+    - websecure
+  tls:
+    options:
+      name: infra-tls
+      namespace: traefik
+  routes:
+    - match: Host(`wiki.lucky-gun.com`)
+      kind: Rule
+      middlewares:
+        - name: edge-base
+          namespace: traefik
+        - name: waf-crs
+          namespace: traefik
+      services:
+        - name: mediawiki-service   # <-- 수정
+          port: 80
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: grafana
+  namespace: monitoring   # <-- 수정
+spec:
+  entryPoints:
+    - websecure
+  tls:
+    options:
+      name: infra-tls
+      namespace: traefik
+  routes:
+    - match: Host(`grafana.lucky-gun.com`)
+      kind: Rule
+      middlewares:
+        - name: edge-base
+          namespace: traefik
+        - name: waf-crs
+          namespace: traefik
+      services:
+        - name: grafana     # <-- 수정
+          port: 3000

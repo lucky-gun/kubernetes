@@ -1,0 +1,5 @@
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.4   # Releases에서 최신 태그로 바꾸거나, 나중에 `pre-commit autoupdate` 사용
+    hooks:
+      - id: gitleaks

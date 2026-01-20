@@ -74,13 +74,13 @@ spec:
               mountPath: /var/www/html/config
               subPath: config
 
-            - name: nextcloud-storage
-              mountPath: /var/www/html/custom_apps
-              subPath: custom_apps
+            #- name: nextcloud-storage
+            #  mountPath: /var/www/html/custom_apps
+            #  subPath: custom_apps
 
-            - name: nextcloud-storage
-              mountPath: /var/www/html/themes
-              subPath: themes
+            #- name: nextcloud-storage
+            #  mountPath: /var/www/html/themes
+            #  subPath: themes
 
       ############################
       # 3️⃣ RWX PVC

@@ -6,7 +6,7 @@ metadata:
   labels:
     app: wordpress
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: wordpress
@@ -18,6 +18,9 @@ spec:
       containers:
       - name: wordpress
         image: wordpress:latest
+        envFrom:
+          - secretRef:
+              name: wordpress-auth-keys
         ports:
         - containerPort: 80
         env:
@@ -48,7 +51,7 @@ spec:
               key: wp_tz
         volumeMounts:
         - name: wp-data
-          mountPath: /var/www/html
+          mountPath: /var/www/html/wp-content
       volumes:
       - name: wp-data
         persistentVolumeClaim:

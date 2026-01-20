@@ -61,10 +61,17 @@ ports:
     forwardedHeaders:
       trustedIPs: *cloudflare_ips
 
+  metrics:
+    port: 9100
+    expose:
+      default: false
+
 # 3. 로그 설정 (JSON 포맷 유지 및 헤더 보존)
 logs:
   general:
     level: INFO
+    format: common
+
   access:
     enabled: true
     format: json
@@ -93,17 +100,44 @@ env:
         name: cloudflare-api-token # 사전에 생성할 Secret 이름
         key: CF_DNS_API_TOKEN
 
-# 6. Static Config (CertResolvers 등)
-additionalArguments:
-  - "--certificatesresolvers.myresolver.acme.email=fallsky104@gmail.com"
-  - "--certificatesresolvers.myresolver.acme.storage=/etc/traefik/letsencrypt/acme.json"
-  - "--certificatesresolvers.myresolver.acme.dnschallenge.provider=cloudflare"
-  - "--certificatesresolvers.myresolver.acme.dnschallenge.resolvers=1.1.1.1:53,8.8.8.8:53"
+certficatesResolvers:
+  myresolver:
+    acme:
+      email: "fallsky104@gmail.com"
+      storage: "/etc/traefik/letsencrypt/acme.json"
+      dnsChallenge:
+        provider: cloudflare
+        resolvers:
+          - "1.1.1.1:53"
+          - "8.8.8.8:53"
 
-# 7. Dashboard 활성화 (Internal 전용으로 권장)
+additionalArguments: []
+
 api:
   dashboard: true
   insecure: false # IngressRoute로 별도 노출 권장
+
+metrics:
+  prometheus:
+    entryPoint: metrics
+    service:
+      enabled: true
+    serviceMonitor:
+      enabled: true
+      namespace: monitoring
+      additionalLabels:
+        release: prometheus-stack
+      interval: 30s
+      scrapeTimeout: 10s
+
+experimental:
+  plugins:
+    crowdsec:
+      moduleName: "github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin"
+      version: "v1.4.0"
+    coraza:
+      moduleName: "github.com/jcchavezs/coraza-http-wasm-traefik"
+      version: "v0.3.0"
 
 providers:
   kubernetesCRD:
