@@ -117,18 +117,10 @@ alertmanager:
       volumeClaimTemplate:
         spec:
           accessModes: ["ReadWriteOnce"]
-          storageClassName: "rook-ceph-block"
+          storageClassName: "rook-rbd-sc"
           resources:
             requests:
-              storage: 2Gi
-
-    resources:
-      requests:
-        cpu: 50m
-        memory: 128Mi
-      limits:
-        cpu: 500m
-        memory: 512Mi
+              storage: 1Gi
 
 prometheus:
   enabled: true
@@ -149,18 +141,18 @@ prometheus:
       volumeClaimTemplate:
         spec:
           accessModes: ["ReadWriteOnce"]
-          storageClassName: "rook-ceph-block"
+          storageClassName: "rook-rbd-sc"
           resources:
             requests:
-              storage: 8Gi
+              storage: 4Gi
 
-    resources:
-      requests:
-        cpu: 200m
-        memory: 2Gi
-      limits:
-        cpu: "2"
-        memory: 6Gi
+#    resources:
+#      requests:
+#        cpu: 200m
+#        memory: 2Gi
+#      limits:
+#        cpu: "2"
+#        memory: 6Gi
 
 prometheusAdapter:
   enabled: false

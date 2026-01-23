@@ -90,13 +90,13 @@ spec:
             - name: kubelet-client-key
               mountPath: /etc/nginx/ssl/apiserver-kubelet-client.key
               readOnly: true
-          resources:
-            requests:
-              cpu: 10m
-              memory: 32Mi
-            limits:
-              cpu: 200m
-              memory: 128Mi
+#          resources:
+#            requests:
+#              cpu: 10m
+#              memory: 32Mi
+#            limits:
+#              cpu: 200m
+#              memory: 128Mi
 
       volumes:
         - name: nginx-conf

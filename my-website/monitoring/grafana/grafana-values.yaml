@@ -1,4 +1,4 @@
-replicas: 2
+replicas: 1
 # grafana-values.yaml
 ingress:
   enabled: false
@@ -58,8 +58,8 @@ grafana.ini:
   database:
     type: mysql
     host: mariadb-galera.database.svc.cluster.local:3306  # <-- 여기만 수정
-    name: grafana-db
-    user: gf-admin
+    name: grafana_db
+    user: gf_admin
     password: $__env{GF_DATABASE_PASSWORD}
     ssl_mode: disable
 
@@ -68,22 +68,24 @@ sidecar:
   dashboards:
     enabled: true
     label: grafana_dashboard
-    folder: /tmp/dashboards
     folderAnnotation: k8s-sidecar-target-directory
+    folder: /tmp/dashboards
   datasources:
     enabled: true
     label: grafana_datasource
+    labelValue: "1"
+    searchNamespace: ALL
 
 # 대시보드 provider(폴더 지정)
 dashboardProviders:
   dashboardproviders.yaml:
     apiVersion: 1
     providers:
-      - name: loki-dashboards
+      - name: k8s-sidecar
         orgId: 1
-        folder: Loki
         type: file
         disableDeletion: false
         editable: true
         options:
-          path: /tmp/dashboards/loki
+          path: /tmp/dashboards
+          foldersFromFilesStructure: true

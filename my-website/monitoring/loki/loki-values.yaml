@@ -1,0 +1,70 @@
+deploymentMode: SingleBinary
+
+loki:
+  auth_enabled: false
+
+  commonConfig:
+    replication_factor: 2   # replicas=2면 2로 맞춤 (가능하면 3 권장)
+
+  schemaConfig:
+    configs:
+      - from: "2024-01-01"
+        store: tsdb
+        object_store: s3
+        schema: v13
+        index:
+          prefix: loki_index_
+          period: 24h
+
+  # (선택) chart 기본 예시에서 켜는 옵션들
+  # pattern_ingester:
+  #   enabled: true
+  # limits_config:
+  #   allow_structured_metadata: true
+  #   volume_enabled: true
+
+  storage:
+    type: s3
+    bucketNames:
+      chunks: loki-chunks
+      ruler: loki-ruler
+      admin: loki-admin
+    s3:
+      endpoint: http://rook-ceph-rgw-rook-store.rook-ceph.svc:80
+      region: us-east-1
+      accessKeyId: QY9BD46PDQBF7RLSYX6X
+      secretAccessKey: o0W50ezkKGPcuyc4wwPdzsIyrVzw2NChb4Ekihl8
+      s3ForcePathStyle: true
+      insecure: true   # RGW를 http로 붙이면 true. (TLS면 false)
+
+singleBinary:
+  replicas: 2
+  persistence:
+    enabled: true
+    storageClass: rook-rbd-sc   # (중요) 네 클러스터 StorageClass로 교체
+    accessModes:
+      - ReadWriteOnce
+    size: 3Gi
+
+# gateway도 SPOF 되기 쉬우니 2 권장(선택)
+gateway:
+  replicas: 1
+  enabled: true
+  containerPort: 8080
+  nginxConfig:
+    httpListenPort: 8080
+
+# 내장 MinIO는 끄는 걸 권장 (Rook RGW 쓰니까)
+minio:
+  enabled: false
+
+chunksCache:
+  enabled: false
+resultsCache:
+  enabled: false
+backend:
+  replicas: 0
+read:
+  replicas: 0
+write:
+  replicas: 0

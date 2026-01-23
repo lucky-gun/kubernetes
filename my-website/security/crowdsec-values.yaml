@@ -6,6 +6,7 @@ agent:
     - namespace: traefik        # <- Traefik 설치된 네임스페이스로 변경
       podName: traefik-*
       program: traefik
+      poll_without_inotify: true
 
   # Traefik용 파서/컬렉션 활성화(권장)
   env:
@@ -13,3 +14,22 @@ agent:
       value: "crowdsecurity/traefik"
       #value: "crowdsecurity/traefik crowdsecurity/wordpress crowdsecurity/nextcloud"
 
+lapi:
+  persistentVolume:
+    data:
+      enabled: true
+      storageClassName: rook-rbd-sc
+      accessModes:
+        - ReadWriteOnce
+      size: 1Gi
+    config:
+      enabled: true
+      storageClassName: rook-rbd-sc
+      accessModes:
+        - ReadWriteOnce
+      size: 100Mi
+
+config:
+  api:
+    server:
+      offline_timeout: 6h

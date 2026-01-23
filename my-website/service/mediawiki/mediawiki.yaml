@@ -28,19 +28,20 @@ spec:
               mountPath: /var/www/html/images
               subPath: images
 
-            - name: localsettings
-              mountPath: /var/www/html/LocalSettings.php
-              subPath: LocalSettings.php
-              readOnly: true
+            #설정된 이후 작업 진행
+            #- name: localsettings
+            #  mountPath: /var/www/html/LocalSettings.php
+            #  subPath: LocalSettings.php
+            #  readOnly: true
 
       volumes:
         - name: mediawiki-storage
           persistentVolumeClaim:
             claimName: mw-shared-pvc
 
-        - name: localsettings
-          secret:
-            secretName: mediawiki-localsettings
+        #- name: localsettings
+        #  secret:
+        #    secretName: mediawiki-localsettings
 
 ---
 apiVersion: v1
