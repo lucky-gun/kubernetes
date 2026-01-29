@@ -16,7 +16,7 @@ metadata:
   namespace: infra
 subsets:
   - addresses:
-      - ip: 10.0.0.11   # cockpit 노드 IP
+      - ip: 10.0.0.11
     ports:
       - port: 9090
         name: https

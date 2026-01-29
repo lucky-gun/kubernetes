@@ -6,7 +6,7 @@ metadata:
   namespace: rook-ceph
 spec:
   cephVersion:
-    image: quay.io/ceph/ceph:v18.2.0   # Reef LTS
+    image: quay.io/ceph/ceph:v19.2.0
 
   dataDirHostPath: /var/lib/rook  # 이때 Worker node의 VM에서는 미리 해당 디렉토리가 있어야하며 167 권한이 있어야합니다.
 
@@ -40,3 +40,8 @@ spec:
         interval: 45s
       osd:
         interval: 60s
+
+  monitoring:
+    enabled: true
+    createPrometheusRules: true
+    metricsDisabled: false

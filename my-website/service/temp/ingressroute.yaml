@@ -17,6 +17,5 @@ spec:
       middlewares:
         - name: only-cloudflare
           namespace: traefik
-        # 여기에 basicAuth 같은 거 추가 강추
   tls:
     certResolver: myresolver

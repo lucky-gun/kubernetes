@@ -1,5 +1,4 @@
 controller:
-  # 각 노드마다 하나씩 배포하여 해당 노드의 로그를 수집합니다.
   type: daemonset
 
 alloy:
@@ -17,14 +16,12 @@ alloy:
         format = "logfmt"
       }
 
-      // 1. 로그를 전송할 Loki 엔드포인트 설정
       loki.write "default" {
         endpoint {
           url = "http://loki-gateway.monitoring.svc.cluster.local/loki/api/v1/push"
         }
       }
 
-      // 2. 현재 노드에 있는 포드들만 탐색 (Service Discovery)
       discovery.kubernetes "pod" {
         role = "pod"
         selectors {
@@ -33,7 +30,6 @@ alloy:
         }
       }
 
-      // 3. 메타데이터 레이블 정리 (Relabeling)
       discovery.relabel "pod_logs" {
         targets = discovery.kubernetes.pod.targets
 
@@ -63,13 +59,11 @@ alloy:
         }
       }
 
-      // 4. 로컬 로그 파일 읽기
       loki.source.kubernetes "pod_logs" {
         targets    = discovery.relabel.pod_logs.output
         forward_to = [loki.process.pod_logs.receiver]
       }
 
-      // 5. 공통 레이블 추가 및 최종 전송
       loki.process "pod_logs" {
         stage.static_labels {
           values = {

@@ -1,3 +1,4 @@
+# 아직까지 오류 발생
 kubectl edit cm -n monitoring loki-gateway
 listen [::]:8080;
 kubectl delete pod -n monitoring -l app.kubernetes.io/component=gateway

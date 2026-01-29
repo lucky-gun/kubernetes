@@ -2,14 +2,13 @@ apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
   name: custom-node-alerts
-  namespace: monitoring # prometheus-stack이 설치된 네임스페이스
+  namespace: monitoring
   labels:
-    release: kube-prometheus-stack # 중요: Helm 배포명과 일치해야 인식됨
+    release: kube-prometheus-stack
 spec:
   groups:
   - name: node_status_alerts_custom
     rules:
-      # 외부 타겟(lucky-gun.com 등)을 위해 이 룰은 유지하는 것이 좋습니다.
       - alert: HostDownCustom
         expr: up == 0
         for: 2m
@@ -22,7 +21,6 @@ spec:
 
   - name: node_resource_alerts_custom
     rules:
-      # 기본 룰이 있지만, 85%라는 명확한 기준을 유지하고 싶을 때 사용
       - alert: HighCPUUsageCustom
         expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
         for: 5m

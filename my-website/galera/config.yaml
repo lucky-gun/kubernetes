@@ -10,6 +10,4 @@ data:
     character-set-server = utf8mb4
     collation-server = utf8mb4_unicode_ci
     skip-name-resolve
-
-    # Galera 환경에서는 타임존도 여기서 설정 가능
     default_time_zone = '+09:00'

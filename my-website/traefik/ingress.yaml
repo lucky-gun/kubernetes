@@ -1,6 +1,79 @@
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
+  name: rook-ceph
+  namespace: rook-ceph
+spec:
+  entryPoints:
+    - websecure
+  tls:
+    certResolver: myresolver
+    options:
+      name: infra-tls
+      namespace: traefik
+  routes:
+    - match: Host(`infra.lucky-gun.com`)
+      kind: Rule
+      priority: 300
+      middlewares:
+        - name: edge-admin
+          namespace: traefik
+      services:
+        - name: rook-ceph-mgr-dashboard
+          port: 7000
+          scheme: https
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: traefik
+  namespace: traefik
+spec:
+  entryPoints:
+    - websecure
+  tls:
+    certResolver: myresolver
+    options:
+      name: infra-tls
+      namespace: traefik
+  routes:
+    - match: Host(`dashboard.lucky-gun.com`)
+      kind: Rule
+      priority: 300
+      middlewares:
+        - name: edge-admin
+          namespace: traefik
+      services:
+        - name: api@internal
+          kind: TraefikService
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: wordpress-www-redirect
+  namespace: infra
+spec:
+  entryPoints:
+    - websecure
+  tls:
+    certResolver: myresolver
+    options:
+      name: infra-tls
+      namespace: traefik
+  routes:
+    - match: Host(`www.lucky-gun.com`)
+      kind: Rule
+      priority: 300
+      middlewares:
+        - name: redirect-www-to-apex
+          namespace: infra
+      services:
+        - name: wordpress-service
+          port: 80
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
   name: wordpress
   namespace: infra
 spec:
@@ -11,6 +84,11 @@ spec:
     options:
       name: infra-tls
       namespace: traefik
+    domains:
+      - main: lucky-gun.com
+        sans:
+          - "*.lucky-gun.com"
+          - "www.lucky-gun.com"
   routes:
     - match: Host(`lucky-gun.com`) && (PathPrefix(`/wp-content/`) || PathPrefix(`/wp-includes/`))
       kind: Rule
@@ -86,7 +164,7 @@ apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
   name: mediawiki
-  namespace: infra   # <-- 수정
+  namespace: infra
 spec:
   entryPoints:
     - websecure
@@ -104,7 +182,7 @@ spec:
         - name: waf-crs
           namespace: traefik
       services:
-        - name: mediawiki-service   # <-- 수정
+        - name: mediawiki-service
           port: 80
 
 ---
@@ -112,7 +190,7 @@ apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
   name: grafana
-  namespace: monitoring   # <-- 수정
+  namespace: monitoring
 spec:
   entryPoints:
     - websecure
@@ -130,5 +208,5 @@ spec:
         - name: waf-crs
           namespace: traefik
       services:
-        - name: grafana     # <-- 수정
+        - name: grafana
           port: 80

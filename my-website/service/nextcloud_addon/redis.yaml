@@ -7,11 +7,11 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: redis  # 1. 여기에 정의된 라벨이
+      app: redis
   template:
     metadata:
       labels:
-        app: redis # 2. 여기와 일치해야 하고
+        app: redis
     spec:
       containers:
       - name: redis
@@ -27,13 +27,13 @@ spec:
           - "--save"
           - "60"
           - "1000"
-        resources:
-          limits:
-            memory: "300Mi"
-            cpu: "500m"
-          requests:
-            memory: "256Mi" # Request도 설정하는 것을 권장합니다.
-            cpu: "100m"
+        #resources:
+        #  limits:
+        #    memory: "300Mi"
+        #    cpu: "500m"
+        #  requests:
+        #    memory: "256Mi"
+        #    cpu: "100m"
         ports:
         - containerPort: 6379
 ---
@@ -44,7 +44,7 @@ metadata:
   namespace: database
 spec:
   selector:
-    app: redis # 3. 서비스가 이 라벨을 찾아갈 수 있게 됩니다.
+    app: redis
   ports:
     - protocol: TCP
       port: 6379

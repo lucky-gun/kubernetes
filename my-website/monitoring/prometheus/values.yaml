@@ -1,6 +1,5 @@
 grafana:
   enabled: false
-
 kubeEtcd:
   enabled: false
 kubeScheduler:
@@ -47,7 +46,6 @@ alertmanager:
       repeat_interval: 12h
 
       routes:
-        # --- 소음 방지(강추): Watchdog/InfoInhibitor는 아예 버리기
         - receiver: "null"
           matchers:
             - alertname="Watchdog"
@@ -55,7 +53,6 @@ alertmanager:
           matchers:
             - alertname="InfoInhibitor"
 
-        # SecOps는 매우 느슨하게(원하면 repeat을 3d~7d로 더 늘려도 됨)
         - receiver: "slack-once"
           matchers:
             - service="secops"
@@ -64,7 +61,6 @@ alertmanager:
           group_interval: 2h
           repeat_interval: 24h
 
-        # Infra도 여유 있게
         - receiver: "slack-once"
           matchers:
             - service="infra"
@@ -132,9 +128,6 @@ prometheus:
     walCompression: true 
     enableAdminAPI: false
 
-    #additionalArgs:
-    #  - name: web.enable-lifecycle
-
     replicas: 2
 
     storageSpec:
@@ -145,15 +138,3 @@ prometheus:
           resources:
             requests:
               storage: 4Gi
-
-#    resources:
-#      requests:
-#        cpu: 200m
-#        memory: 2Gi
-#      limits:
-#        cpu: "2"
-#        memory: 6Gi
-
-prometheusAdapter:
-  enabled: false
-

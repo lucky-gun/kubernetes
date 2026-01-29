@@ -1,0 +1,35 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: security-baseline-audit
+spec:
+  validationFailureAction: Audit
+  background: true
+  rules:
+  - name: baseline-securitycontext
+    match:
+      any:
+      - resources:
+          kinds: ["Pod"]
+          namespaces: ["infra"]
+    validate:
+      message: "infra: allowPrivilegeEscalation=false, runAsNonRoot=true, capabilities.drop=ALL, seccomp RuntimeDefault 권장"
+      pattern:
+        spec:
+          securityContext:
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+          - securityContext:
+              allowPrivilegeEscalation: false
+              runAsNonRoot: true
+              capabilities:
+                drop:
+                - ALL
+          =(initContainers):
+          - securityContext:
+              allowPrivilegeEscalation: false
+              runAsNonRoot: true
+              capabilities:
+                drop:
+                - ALL

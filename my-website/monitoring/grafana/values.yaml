@@ -1,11 +1,10 @@
 replicas: 1
-# grafana-values.yaml
 ingress:
   enabled: false
 
 persistence:
   enabled: false
-#  type: pvc   ##만약 replicas=1일 경우,
+#  type: pvc   # 만약 replicas=1일 경우,
 #  enabled: true
 #  size: 5Gi
 #  storageClassName: rook-ceph-block
@@ -57,19 +56,28 @@ grafana.ini:
 
   database:
     type: mysql
-    host: mariadb-galera.database.svc.cluster.local:3306  # <-- 여기만 수정
+    host: mariadb-galera.database.svc.cluster.local:3306
     name: grafana_db
     user: gf_admin
     password: $__env{GF_DATABASE_PASSWORD}
     ssl_mode: disable
 
-# sidecar: dashboards/datasources 자동 주입
 sidecar:
   dashboards:
     enabled: true
     label: grafana_dashboard
     folderAnnotation: k8s-sidecar-target-directory
     folder: /tmp/dashboards
+    searchNamespace: ALL
+
+    SCProvider: true
+    provider:
+      name: sidecarProvider
+      foldersFromFilesStructure: true
+      allowUiUpdates: false
+      disableDelete: false
+      updateIntervalSeconds: 30
+
   datasources:
     enabled: true
     label: grafana_datasource
@@ -77,15 +85,15 @@ sidecar:
     searchNamespace: ALL
 
 # 대시보드 provider(폴더 지정)
-dashboardProviders:
-  dashboardproviders.yaml:
-    apiVersion: 1
-    providers:
-      - name: k8s-sidecar
-        orgId: 1
-        type: file
-        disableDeletion: false
-        editable: true
-        options:
-          path: /tmp/dashboards
-          foldersFromFilesStructure: true
+#dashboardProviders:
+#  dashboardproviders.yaml:
+#    apiVersion: 1
+#    providers:
+#      - name: k8s-sidecar
+#        orgId: 1
+#        type: file
+#        disableDeletion: false
+#        editable: true
+#        options:
+#          path: /tmp/dashboards
+#          foldersFromFilesStructure: true

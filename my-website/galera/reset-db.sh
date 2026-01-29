@@ -8,8 +8,6 @@ ROOT_PW="root1234!"
 
 echo "🔄 MariaDB Galera Cluster 초기화를 시작합니다..."
 
-# 1. 초기화 SQL 생성 (기존 DB 삭제 로직 추가)
-# DROP DATABASE를 추가하여 기존 데이터를 완전히 제거합니다.
 INIT_SQL=$(cat <<EOF
 -- Nextcloud 초기화
 DROP DATABASE IF EXISTS nextcloud_db;

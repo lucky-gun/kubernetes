@@ -1,0 +1,21 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: labels-audit
+spec:
+  validationFailureAction: Audit
+  background: true
+  rules:
+  - name: require-standard-labels
+    match:
+      any:
+      - resources:
+          kinds: ["Deployment","StatefulSet","DaemonSet"]
+          namespaces: ["infra"]
+    validate:
+      message: "infra: app.kubernetes.io/name, app.kubernetes.io/part-of 라벨을 넣어주세요(GitOps/운영 기준)."
+      pattern:
+        metadata:
+          labels:
+            app.kubernetes.io/name: "?*"
+            app.kubernetes.io/part-of: "?*"

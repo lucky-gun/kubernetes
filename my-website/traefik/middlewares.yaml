@@ -98,9 +98,7 @@ spec:
       crowdsecLapiScheme: http
       crowdsecLapiHost: crowdsec-service.crowdsec.svc.cluster.local:8080
       crowdsecLapiPath: "/"
-      # Key는 Secret mount + KeyFile 방식 권장
       crowdsecLapiKeyFile: /etc/traefik/crowdsec/CROWDSEC_LAPI_KEY
-      # Cloudflare/LB 뒤면 trustedIPs 꼭 설정 (예시는 생략)
       forwardedHeadersTrustedIPs:
         - "173.245.48.0/20"
         - "103.21.244.0/22"
@@ -130,15 +128,16 @@ spec:
       directives:
         - SecRuleEngine On
         - SecResponseBodyAccess Off
-        - SecAction "id:900110,phase:1,pass,nolog,setvar:tx.inbound_anomaly_score_threshold=10,setvar:tx.outbound_anomaly_score_threshold=4"
+        - SecAction "id:900110,phase:1,pass,nolog,setvar:tx.inbound_anomaly_score_threshold=10,setvar:tx.outbound_anomaly_score_threshold=2"
         #- SecDebugLog /dev/stdout
         #- SecDebugLogLevel 2
-        - 'SecRule ARGS:q "@contains or 1=1" "id:1000001,phase:2,deny,status:403,log,auditlog,msg:TEST_SQLI"'
+        #- 'SecRule ARGS:q "@contains or 1=1" "id:1000001,phase:2,deny,status:403,log,auditlog,msg:TEST_SQLI"'
         - SecAuditLogParts ABCFHZ
         - SecAuditLogFormat JSON
         - SecAuditLogRelevantStatus "^(?:5|40[1235]|429)$"
         - SecAuditEngine RelevantOnly
         - SecAuditLog /dev/stdout
+        #- "SecRule ARGS \"@rx <script\" \"id:941100,phase:2,deny,status:403,log,msg:'XSS Detection Test'\""
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
@@ -162,7 +161,7 @@ spec:
   chain:
     middlewares:
       #- name: only-cloudflare
-      - name: ip-whitelist
+      #- name: ip-whitelist
       - name: security-headers
 ---
 apiVersion: traefik.io/v1alpha1
@@ -219,11 +218,11 @@ metadata:
 spec:
   minVersion: VersionTLS12
   cipherSuites:
-    - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 # ECDSA 추가
+    - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
     - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
     - TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
     - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
-    - TLS_AES_128_GCM_SHA256 # TLS 1.3용
-    - TLS_AES_256_GCM_SHA384 # TLS 1.3용
-    - TLS_CHACHA20_POLY1305_SHA256 # TLS 1.3용
+    - TLS_AES_128_GCM_SHA256
+    - TLS_AES_256_GCM_SHA384
+    - TLS_CHACHA20_POLY1305_SHA256
   sniStrict: true

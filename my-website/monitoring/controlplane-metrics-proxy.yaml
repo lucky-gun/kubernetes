@@ -5,7 +5,6 @@ metadata:
   namespace: monitoring
 data:
   proxy.conf: |
-    # scheduler -> https://127.0.0.1:10259/metrics (인증 필요)
     server {
       listen 19159;
       location /metrics {
@@ -17,7 +16,6 @@ data:
       }
     }
 
-    # controller-manager -> https://127.0.0.1:10257/metrics (인증 필요)
     server {
       listen 19157;
       location /metrics {
@@ -29,7 +27,6 @@ data:
       }
     }
 
-    # etcd metrics -> http://127.0.0.1:2381/metrics (대부분 인증 없음)
     server {
       listen 19181;
       location /metrics {
@@ -83,20 +80,12 @@ spec:
             - name: nginx-conf
               mountPath: /etc/nginx/conf.d
               readOnly: true
-            # ★ 컨트롤플레인 노드의 kubeadm 인증서/키를 readOnly 마운트
             - name: kubelet-client-crt
               mountPath: /etc/nginx/ssl/apiserver-kubelet-client.crt
               readOnly: true
             - name: kubelet-client-key
               mountPath: /etc/nginx/ssl/apiserver-kubelet-client.key
               readOnly: true
-#          resources:
-#            requests:
-#              cpu: 10m
-#              memory: 32Mi
-#            limits:
-#              cpu: 200m
-#              memory: 128Mi
 
       volumes:
         - name: nginx-conf
@@ -106,7 +95,6 @@ spec:
               - key: proxy.conf
                 path: proxy.conf
 
-        # hostPath: 파일 단위로만 마운트(전체 pki 디렉토리 마운트보다 안전)
         - name: kubelet-client-crt
           hostPath:
             path: /etc/kubernetes/pki/apiserver-kubelet-client.crt

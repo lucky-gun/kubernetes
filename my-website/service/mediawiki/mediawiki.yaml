@@ -1,3 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mw-shared-pvc
+  namespace: infra
+spec:
+  accessModes: ["ReadWriteMany"]
+  storageClassName: rook-cephfs-sc
+  resources:
+    requests:
+      storage: 1Gi
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -6,7 +18,7 @@ metadata:
   labels:
     app: mediawiki
 spec:
-  replicas: 1   # 🔹 여기만 나중에 3으로 변경
+  replicas: 1
   selector:
     matchLabels:
       app: mediawiki
