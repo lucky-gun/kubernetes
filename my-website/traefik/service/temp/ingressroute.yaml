@@ -1,0 +1,21 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: cockpit
+  namespace: infra
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`space.lucky-gun.com`)
+      kind: Rule
+      services:
+        - name: cockpit-external
+          port: 9090
+          scheme: https
+          serversTransport: cockpit-transport
+      middlewares:
+        - name: only-cloudflare
+          namespace: traefik
+  tls:
+    certResolver: myresolver

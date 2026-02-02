@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloudflare-worker-bouncer-config
+  namespace: crowdsec
+data:
+  crowdsec-cloudflare-worker-bouncer.yaml: |
+    crowdsec_config:
+      lapi_key: ${CROWDSEC_LAPI_KEY}
+      lapi_url: http://crowdsec-service.crowdsec.svc.cluster.local:8080
+      update_frequency: 10s
+      only_include_decisions_from: []
+      insecure_skip_verify: false
+
+    cloudflare_config:
+      accounts:
+        - id: ${CF_ACCOUNT_ID}
+          token: ${CF_API_TOKEN}
+          account_name: "cloudflare"
+          zones:
+            - zone_id: ${CF_ZONE_ID}
+              actions:
+                - ban
+              default_action: ban
+              routes_to_protect: []
+              turnstile:
+                enabled: false
+      worker:
+        log_only: false
+
+    log_level: info
+    log_media: "stdout"
+
+    prometheus:
+      enabled: true
+      listen_addr: 0.0.0.0
+      listen_port: "2112"

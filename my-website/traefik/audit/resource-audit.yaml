@@ -1,0 +1,34 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: resources-audit
+spec:
+  validationFailureAction: Audit
+  background: true
+  rules:
+  - name: require-requests-limits
+    match:
+      any:
+      - resources:
+          kinds: ["Pod"]
+          namespaces: ["infra"]
+    validate:
+      message: "infra: containers에 cpu/memory requests & limits 설정을 권장합니다."
+      pattern:
+        spec:
+          containers:
+          - resources:
+              requests:
+                cpu: "?*"
+                memory: "?*"
+              limits:
+                cpu: "?*"
+                memory: "?*"
+          =(initContainers):
+          - resources:
+              requests:
+                cpu: "?*"
+                memory: "?*"
+              limits:
+                cpu: "?*"
+                memory: "?*"

@@ -1,0 +1,34 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: nextcloud-cron
+  namespace: nextcloud
+spec:
+  schedule: "*/5 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: cron
+              image: nextcloud:29
+              command:
+                - /bin/sh
+                - -lc
+                - |
+                  cp -an /usr/src/nextcloud/. /var/www/html \
+                  && chown -R 33:33 /var/www/html \
+                  && php -f /var/www/html/cron.php
+              volumeMounts:
+                - name: data
+                  mountPath: /var/www/html/data
+                - name: config
+                  mountPath: /var/www/html/config
+          volumes:
+            - name: data
+              persistentVolumeClaim:
+                claimName: nextcloud-data
+            - name: config
+              persistentVolumeClaim:
+                claimName: nextcloud-config

@@ -1,0 +1,40 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: image-audit
+spec:
+  validationFailureAction: Audit
+  background: true
+  rules:
+  - name: require-tag-or-digest
+    match:
+      any:
+      - resources:
+          kinds: ["Pod"]
+          namespaces: ["infra"]
+    validate:
+      message: "infra: image는 tag(예: app:1.2.3) 또는 digest(예: app@sha256:...)를 사용하세요."
+      foreach:
+      - list: "request.object.spec.containers"
+        anyPattern:
+        - image: "*:*"
+        - image: "*@sha256:*"
+      - list: "request.object.spec.initContainers"
+        anyPattern:
+        - image: "*:*"
+        - image: "*@sha256:*"
+  - name: disallow-latest
+    match:
+      any:
+      - resources:
+          kinds: ["Pod"]
+          namespaces: ["infra"]
+    validate:
+      message: "infra: mutable 태그(:latest)는 사용하지 마세요."
+      foreach:
+      - list: "request.object.spec.containers"
+        pattern:
+          image: "!*:latest"
+      - list: "request.object.spec.initContainers"
+        pattern:
+          image: "!*:latest"

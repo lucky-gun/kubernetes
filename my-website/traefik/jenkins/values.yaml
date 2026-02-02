@@ -1,0 +1,25 @@
+# values.yaml
+controller:
+  serviceType: ClusterIP
+
+  jenkinsUrl: "https://jenkins.lucky-gun.com"
+
+  admin:
+    createSecret: false
+
+  installLatestPlugins: false
+  installLatestSpecifiedPlugins: false
+  initializeOnce: true
+
+  additionalPlugins:
+    - github
+    - github-branch-source
+    - credentials-binding
+    - pipeline-stage-view
+
+persistence:
+  enabled: true
+  storageClass: "rook-rbd-sc"
+  accessMode: "ReadWriteOnce"
+  size: "5Gi"
+

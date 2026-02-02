@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: grafana-runtime
+  namespace: monitoring
+type: Opaque
+stringData:
+  GF_DATABASE_PASSWORD: "gf_pass"
+  GF_SECURITY_SECRET_KEY: "grafana-secret-key"

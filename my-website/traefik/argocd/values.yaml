@@ -1,0 +1,14 @@
+global:
+  domain: argocd.lucky-gun.com
+
+configs:
+  cm:
+    url: https://argocd.lucky-gun.com
+  params:
+    "server.insecure" : "true"
+  secret:
+    argocdServerAdminPassword: "$2a$10$v0myS2Ky2EV3mdvwzdL6NeVjs6SRlqkgd23a4xYIDoUg5Irb/Zs5K"
+
+server:
+  ingress:
+    enabled: false
