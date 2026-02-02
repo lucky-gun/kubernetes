@@ -43,5 +43,4 @@ spec:
 
   monitoring:
     enabled: true
-    createPrometheusRules: true
     metricsDisabled: false

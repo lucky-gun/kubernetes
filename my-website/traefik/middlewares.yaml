@@ -129,15 +129,16 @@ spec:
         - SecRuleEngine On
         - SecResponseBodyAccess Off
         - SecAction "id:900110,phase:1,pass,nolog,setvar:tx.inbound_anomaly_score_threshold=10,setvar:tx.outbound_anomaly_score_threshold=2"
-        #- SecDebugLog /dev/stdout
-        #- SecDebugLogLevel 2
-        #- 'SecRule ARGS:q "@contains or 1=1" "id:1000001,phase:2,deny,status:403,log,auditlog,msg:TEST_SQLI"'
         - SecAuditLogParts ABCFHZ
         - SecAuditLogFormat JSON
         - SecAuditLogRelevantStatus "^(?:5|40[1235]|429)$"
         - SecAuditEngine RelevantOnly
         - SecAuditLog /dev/stdout
-        #- "SecRule ARGS \"@rx <script\" \"id:941100,phase:2,deny,status:403,log,msg:'XSS Detection Test'\""
+
+        - "SecRule ARGS \"@rx <script\" \"id:941100,phase:2,deny,status:403,log,msg:'XSS Detection Test'\""
+        - SecDebugLog /dev/stdout
+        - SecDebugLogLevel 2
+        - 'SecRule ARGS:q "@contains or 1=1" "id:1000001,phase:2,deny,status:403,log,auditlog,msg:TEST_SQLI"'
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
@@ -226,3 +227,11 @@ spec:
     - TLS_AES_256_GCM_SHA384
     - TLS_CHACHA20_POLY1305_SHA256
   sniStrict: true
+---
+apiVersion: traefik.io/v1alpha1
+kind: ServersTransport
+metadata:
+  name: domain-insecure
+  namespace: traefik
+spec:
+  insecureSkipVerify: true

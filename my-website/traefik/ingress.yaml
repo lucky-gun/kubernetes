@@ -1,13 +1,68 @@
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
+  name: jenkins
+  namespace: jenkins
+spec:
+  entryPoints:
+    - websecure
+  tls:
+    options:
+      name: infra-tls
+      namespace: traefik
+  routes:
+    - match: Host(`jenkins.lucky-gun.com`)
+      kind: Rule
+      priority: 300
+      middlewares:
+        - name: edge-admin
+          namespace: traefik
+      services:
+        - name: jenkins
+          port: 8080
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: argocd
+  namespace: argocd
+spec:
+  entryPoints:
+    - websecure
+  tls:
+    options:
+      name: infra-tls
+      namespace: traefik
+  routes:
+    - match: Host(`argocd.lucky-gun.com`) && HeaderRegexp(`Content-Type`,`application/grpc.*`)
+      kind: Rule
+      priority: 300
+      middlewares:
+        - name: edge-admin
+          namespace: traefik
+      services:
+        - name: argocd-server
+          port: 80
+
+    - match: Host(`argocd.lucky-gun.com`)
+      kind: Rule
+      priority: 100
+      middlewares:
+        - name: edge-admin
+          namespace: traefik
+      services:
+        - name: argocd-server
+          port: 80
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
   name: rook-ceph
   namespace: rook-ceph
 spec:
   entryPoints:
     - websecure
   tls:
-    certResolver: myresolver
     options:
       name: infra-tls
       namespace: traefik
@@ -21,7 +76,7 @@ spec:
       services:
         - name: rook-ceph-mgr-dashboard
           port: 7000
-          scheme: https
+          scheme: http
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
@@ -32,7 +87,6 @@ spec:
   entryPoints:
     - websecure
   tls:
-    certResolver: myresolver
     options:
       name: infra-tls
       namespace: traefik
@@ -56,7 +110,6 @@ spec:
   entryPoints:
     - websecure
   tls:
-    certResolver: myresolver
     options:
       name: infra-tls
       namespace: traefik
@@ -68,8 +121,8 @@ spec:
         - name: redirect-www-to-apex
           namespace: infra
       services:
-        - name: wordpress-service
-          port: 80
+        - name: noop@internal
+          kind: TraefikService
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
@@ -81,14 +134,13 @@ spec:
     - websecure
   tls:
     certResolver: myresolver
-    options:
-      name: infra-tls
-      namespace: traefik
     domains:
       - main: lucky-gun.com
         sans:
           - "*.lucky-gun.com"
-          - "www.lucky-gun.com"
+    options:
+      name: infra-tls
+      namespace: traefik
   routes:
     - match: Host(`lucky-gun.com`) && (PathPrefix(`/wp-content/`) || PathPrefix(`/wp-includes/`))
       kind: Rule
@@ -124,7 +176,6 @@ spec:
   entryPoints:
     - websecure
   tls:
-    certResolver: myresolver
     options:
       name: infra-tls
       namespace: traefik
@@ -169,7 +220,6 @@ spec:
   entryPoints:
     - websecure
   tls:
-    certResolver: myresolver
     options:
       name: infra-tls
       namespace: traefik
@@ -195,7 +245,6 @@ spec:
   entryPoints:
     - websecure
   tls:
-    certResolver: myresolver
     options:
       name: infra-tls
       namespace: traefik
