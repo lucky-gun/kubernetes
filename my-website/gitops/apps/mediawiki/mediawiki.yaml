@@ -1,0 +1,69 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mw-shared-pvc
+  namespace: infra
+spec:
+  accessModes: ["ReadWriteMany"]
+  storageClassName: rook-cephfs-sc
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mediawiki
+  namespace: infra
+  labels:
+    app: mediawiki
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mediawiki
+  template:
+    metadata:
+      labels:
+        app: mediawiki
+    spec:
+      containers:
+        - name: mediawiki
+          image: luckygun/mediawiki:myblog-beta
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - containerPort: 80
+
+          volumeMounts:
+            - name: mediawiki-storage
+              mountPath: /var/www/html/images
+              subPath: images
+
+            #설정된 이후 작업 진행
+            #- name: localsettings
+            #  mountPath: /var/www/html/LocalSettings.php
+            #  subPath: LocalSettings.php
+            #  readOnly: true
+
+      volumes:
+        - name: mediawiki-storage
+          persistentVolumeClaim:
+            claimName: mw-shared-pvc
+
+        #- name: localsettings
+        #  secret:
+        #    secretName: mediawiki-localsettings
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mediawiki-service
+  namespace: infra
+spec:
+  selector:
+    app: mediawiki
+  ports:
+    - port: 80
+      targetPort: 80

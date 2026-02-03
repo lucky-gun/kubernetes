@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: https://github.com/lucky-gun/kubernetes
     targetRevision: main
-    path: apps
+    path: my-website/gitops/apps
   destination:
     server: https://kubernetes.default.svc
     namespace: default
