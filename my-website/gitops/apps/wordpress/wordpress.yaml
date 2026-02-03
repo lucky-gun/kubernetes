@@ -1,0 +1,91 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: wp-shared-pvc
+  namespace: infra
+spec:
+  accessModes: ["ReadWriteMany"]
+  storageClassName: rook-cephfs-sc
+  resources:
+    requests:
+      storage: 3Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wordpress
+  namespace: infra
+  labels:
+    app: wordpress
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wordpress
+  template:
+    metadata:
+      labels:
+        app: wordpress
+    spec:
+      containers:
+      - name: wordpress
+        image: wordpress:latest
+        envFrom:
+          - secretRef:
+              name: wordpress-auth-keys
+        ports:
+        - containerPort: 80
+        env:
+        - name: WORDPRESS_DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: wordpress-config
+              key: db_host
+        - name: WORDPRESS_DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: wordpress-db-secrets
+              key: db_user
+        - name: WORDPRESS_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: wordpress-db-secrets
+              key: db_password
+        - name: WORDPRESS_DB_NAME
+          valueFrom:
+            secretKeyRef:
+              name: wordpress-db-secrets
+              key: db_name
+        - name: TZ
+          valueFrom:
+            configMapKeyRef:
+              name: wordpress-config
+              key: wp_tz
+        volumeMounts:
+        - name: wp-data
+          mountPath: /var/www/html/wp-content
+      volumes:
+      - name: wp-data
+        persistentVolumeClaim:
+          claimName: wp-shared-pvc
+
+      resources:
+        requests:
+          cpu: 2m
+          memory: 100Mi
+        limits: 
+          cpu: 3m
+          memory: 150Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wordpress-service
+  namespace: infra
+spec:
+  selector:
+    app: wordpress
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
