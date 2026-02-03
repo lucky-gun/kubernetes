@@ -3,3 +3,5 @@ kind: Kustomization
 resources:
   - applications/infra.yaml
   - applications/apps.yaml
+  - applications/infra
+  - applications/apps
