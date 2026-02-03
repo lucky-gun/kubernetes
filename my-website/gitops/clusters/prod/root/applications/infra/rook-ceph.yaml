@@ -14,7 +14,7 @@ spec:
       targetRevision: 1.19.0
       helm:
         valueFiles:
-          - $values/my-website/infrastructure/rook-ceph/values.yaml
+          - $values/my-website/gitops/infrastructure/rook-ceph/values.yaml
     - repoURL: https://github.com/lucky-gun/kubernetes
       targetRevision: main
       ref: values
