@@ -1,0 +1,39 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+  namespace: database
+spec:
+  replicas: 3
+  replicasAllowEvenNumber: false
+  
+  rootPasswordSecretKeyRef:
+    name: mariadb-secret
+    key: password
+
+  myCnfConfigMapKeyRef:
+    name: mariadb-config
+    key: my.cnf
+
+  galera:
+    enabled: true
+    sst: mariabackup
+    primary:
+      podIndex: 0
+    recovery:
+      enabled: true
+    config:
+      volumeClaimTemplate:
+        storageClassName: rook-rbd-sc
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+
+  storage:
+    size: 5Gi
+    storageClassName: rook-rbd-sc
+    volumeClaimTemplate:
+      accessModes:
+        - ReadWriteOnce

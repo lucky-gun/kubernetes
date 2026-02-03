@@ -1,0 +1,17 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: services
+  namespace: argocd
+spec:
+  sourceRepos:
+    - https://github.com/lucky-gun/kubernetes
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: services
+  clusterResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'

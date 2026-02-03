@@ -3,3 +3,7 @@ kind: Kustomization
 resources:
   - database.yaml
   - storage.yaml
+  - security.yaml
+  - monitoring.yaml
+  - services.yaml
+  - infra.yaml

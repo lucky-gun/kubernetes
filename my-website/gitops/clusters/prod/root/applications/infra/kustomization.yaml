@@ -3,3 +3,5 @@ kind: Kustomization
 resources:
   - rook-ceph/rook-ceph.yaml
   - rook-ceph/rook-ceph-resource.yaml
+  - galera/galera.yaml
+  - galera/galera-resource.yaml
