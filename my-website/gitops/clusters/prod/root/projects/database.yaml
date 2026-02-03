@@ -1,0 +1,19 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: database
+  namespace: argocd
+spec:
+  sourceRepos:
+    - https://github.com/lucky-gun/kubernetes
+    - https://helm.mariadb.com/mariadb-operator
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: database
+  clusterResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
+
