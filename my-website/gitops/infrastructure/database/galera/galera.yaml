@@ -8,6 +8,7 @@ spec:
   replicasAllowEvenNumber: false
   
   rootPasswordSecretKeyRef:
+    generate: false
     name: mariadb-secret
     key: password
 
