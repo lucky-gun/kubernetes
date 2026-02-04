@@ -1,0 +1,40 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mariadb-init-job
+  namespace: database
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+    argocd.argoproj.io/sync-wave: "20"
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: mariadb-client
+          image: docker.io/bitnami/mariadb:latest
+          env:
+            - name: MARIADB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: SECRET_NAME
+                  key: SECRET_KEY
+            - name: MARIADB_HOST
+              value: "mariadb-galera.database.svc.cluster.local"
+          volumeMounts:
+            - name: init-sql
+              mountPath: /sql
+          command: ["/bin/bash","-ec"]
+          args:
+            - |
+              for i in {1..60}; do
+                mariadb-admin -h "$MARIADB_HOST" -uroot -p"$MARIADB_ROOT_PASSWORD" ping && break
+                sleep 5
+              done
+              mariadb -h "$MARIADB_HOST" -uroot -p"$MARIADB_ROOT_PASSWORD" < /sql/init.sql
+      volumes:
+        - name: init-sql
+          configMap:
+            name: mariadb-init-config
