@@ -11,7 +11,11 @@ spec:
     - https://bitnami-labs.github.io/sealed-secrets
   destinations:
     - server: https://kubernetes.default.svc
-      namespace: security
+      namespace: crowdsec
+    - server: https://kubernetes.default.svc
+      namespace: kyverno
+    - server: https://kubernetes.default.svc
+      namespace: sealed-secrets
   clusterResourceWhitelist:
     - group: '*'
       kind: '*'
