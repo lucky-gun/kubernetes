@@ -10,7 +10,7 @@ spec:
   source:
     repoURL: https://github.com/lucky-gun/kubernetes
     targetRevision: main
-    path: my-website/gitops/infrastructure/galera
+    path: my-website/gitops/infrastructure/database/galera
     kustomize: {}
   destination:
     server: https://kubernetes.default.svc
