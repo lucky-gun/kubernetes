@@ -4,5 +4,6 @@ resources:
   - sealed-secrets.yaml
   - rook-ceph/rook-ceph.yaml
   - rook-ceph/rook-ceph-resource.yaml
-  - galera/galera.yaml
-  - galera/galera-resource.yaml
+  - database/galera.yaml
+  - database/galera-resource.yaml
+  - database/redis.yaml

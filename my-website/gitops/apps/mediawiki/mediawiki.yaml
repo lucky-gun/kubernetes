@@ -2,7 +2,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: mw-shared-pvc
-  namespace: infra
+  namespace: apps
 spec:
   accessModes: ["ReadWriteMany"]
   storageClassName: rook-cephfs-sc
@@ -14,11 +14,11 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mediawiki
-  namespace: infra
+  namespace: apps
   labels:
     app: mediawiki
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       app: mediawiki
@@ -60,7 +60,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: mediawiki-service
-  namespace: infra
+  namespace: apps
 spec:
   selector:
     app: mediawiki

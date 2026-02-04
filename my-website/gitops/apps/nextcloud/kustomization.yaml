@@ -14,3 +14,4 @@ configMapGenerator:
 
 resources:
 - nextcloud.yaml
+- registry-sealed-secret.yaml
