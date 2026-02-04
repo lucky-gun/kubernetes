@@ -5,5 +5,5 @@ resources:
   - storage.yaml
   - security.yaml
   - monitoring.yaml
-  - services.yaml
+  - apps.yaml
   - infra.yaml
