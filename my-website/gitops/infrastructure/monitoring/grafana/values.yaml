@@ -54,13 +54,13 @@ grafana.ini:
     x_content_type_options: true
     secret_key: $__env{GF_SECURITY_SECRET_KEY}
 
-  #database:
-  #  type: mysql
-  #  host: mariadb-galera.database.svc.cluster.local:3306
-  #  name: grafana_db
-  #  user: gf_admin
-  #  password: $__env{GF_DATABASE_PASSWORD}
-  #  ssl_mode: disable
+  database:
+    type: mysql
+    host: mariadb-galera.database.svc.cluster.local:3306
+    name: grafana_db
+    user: gf_admin
+    password: $__env{GF_DATABASE_PASSWORD}
+    ssl_mode: disable
 
 sidecar:
   dashboards:

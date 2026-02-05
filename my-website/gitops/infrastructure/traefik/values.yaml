@@ -1,0 +1,154 @@
+deployment:
+  enabled: true
+  replicas: 1
+  podSecurityContext:
+    fsGroup: 65532
+  initContainers:
+    - name: acme-permissions
+      image: busybox:latest
+      command: ["sh", "-c", "touch /etc/traefik/letsencrypt/acme.json && chown 65532:65532 /etc/traefik/letsencrypt/acme.json && chmod 600 /etc/traefik/letsencrypt/acme.json"]
+      securityContext:
+        runAsUser: 0
+        runAsNonRoot: false
+        allowPrivilegeEscalation: true
+      volumeMounts:
+        - name: ssl-data
+          mountPath: /etc/traefik/letsencrypt
+
+  additionalVolumes:
+    - name: crowdsec-bouncer
+      secret:
+        secretName: crowdsec-bouncer-key
+
+additionalVolumeMounts:
+  - name: crowdsec-bouncer
+    mountPath: /etc/traefik/crowdsec
+    readOnly: true
+
+ports:
+  web:
+    port: 8000
+    expose:
+      default: true
+    exposedPort: 80
+    http:  
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+          permanent: true
+    forwardedHeaders:
+      trustedIPs: &cloudflare_ips
+        - "173.245.48.0/20"
+        - "103.21.244.0/22"
+        - "103.22.200.0/22"
+        - "103.31.4.0/22"
+        - "141.101.64.0/18"
+        - "108.162.192.0/18"
+        - "190.93.240.0/20"
+        - "188.114.96.0/20"
+        - "197.234.240.0/22"
+        - "198.41.128.0/17"
+        - "162.158.0.0/15"
+        - "104.16.0.0/13"
+        - "104.24.0.0/14"
+        - "172.64.0.0/13"
+        - "131.0.72.0/22"
+                                                                                                                                                                
+  websecure:
+    port: 8443
+    expose:
+      default: true
+    exposedPort: 443
+    forwardedHeaders:
+      trustedIPs: *cloudflare_ips
+
+  metrics:
+    port: 9100
+    expose:
+      default: false
+
+logs:
+  general:
+    level: INFO
+    format: common
+
+  access:
+    enabled: true
+    format: json
+    fields:
+      headers:
+        defaultMode: drop
+        names:
+          Cf-Connecting-Ip: keep
+          X-Forwarded-For: keep
+          User-Agent: keep
+
+persistence:
+  enabled: true
+  name: ssl-data
+  path: /etc/traefik/letsencrypt
+  size: 10M
+  storageClass: "rook-cephfs-sc"
+  accessMode: ReadWriteMany 
+
+env:
+  - name: CF_DNS_API_TOKEN
+    valueFrom:
+      secretKeyRef:
+        name: cloudflare-api-token
+        key: CF_DNS_API_TOKEN
+
+certificatesResolvers:
+  myresolver:
+    acme:
+      email: "fallsky104@gmail.com"
+      storage: "/etc/traefik/letsencrypt/acme.json"
+      dnsChallenge:
+        provider: cloudflare
+        resolvers:
+          - "1.1.1.1:53"
+          - "8.8.8.8:53"
+
+api:
+  dashboard: true
+  insecure: false
+
+metrics:
+  prometheus:
+    entryPoint: metrics
+    service:
+      enabled: true
+    serviceMonitor:
+      enabled: true
+      namespace: monitoring
+      additionalLabels:
+        release: prometheus-stack
+      interval: 30s
+      scrapeTimeout: 10s
+
+      metricRelabelings:
+        - action: replace
+          sourceLabels: [exported_service]
+          regex: '^([^-]+)-(.+)-[^-@]+@kubernetescrd$'
+          targetLabel: k8s_namespace
+          replacement: '$1'
+
+        - action: replace
+          sourceLabels: [exported_service]
+          regex: '^([^-]+)-(.+)-[^-@]+@kubernetescrd$'
+          targetLabel: k8s_service
+          replacement: '$2'
+
+experimental:
+  plugins:
+    crowdsec:
+      moduleName: "github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin"
+      version: "v1.5.0"
+    coraza:
+      moduleName: "github.com/jcchavezs/coraza-http-wasm-traefik"
+      version: "v0.3.0"
+
+providers:
+  kubernetesCRD:
+    allowCrossNamespace: true

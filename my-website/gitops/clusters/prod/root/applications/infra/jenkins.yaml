@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: jenkins
+  namespace: argocd
+spec:
+  project: infra
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: jenkins
+  sources:
+    - repoURL: https://charts.jenkins.io
+      chart: jenkins
+      targetRevision: 5.8.135
+      helm:
+        valueFiles:
+          - $values/my-website/gitops/infrastructure/jenkins/values.yaml
+    - repoURL: https://github.com/lucky-gun/kubernetes
+      targetRevision: main
+      ref: values
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      #- ServerSideApply=true
