@@ -44,7 +44,12 @@ lapi:
   envFrom:
     - secretRef:
         name: crowdsec-key
-      
+
+secrets:
+  externalSecret:
+    name: crowdsec-lapi-secrets-external
+    csLapiSecretKey: csLapiSecret
+    registrationTokenKey: registrationToken
 
 config:
   api:
