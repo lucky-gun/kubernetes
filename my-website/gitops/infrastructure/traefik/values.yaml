@@ -1,6 +1,6 @@
 deployment:
   enabled: true
-  replicas: 1
+  replicas: 3
   podSecurityContext:
     fsGroup: 65532
   initContainers:
