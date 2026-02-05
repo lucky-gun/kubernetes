@@ -3,6 +3,8 @@ kind: MariaDB
 metadata:
   name: mariadb-galera
   namespace: database
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
 spec:
   replicas: 3
   replicasAllowEvenNumber: false

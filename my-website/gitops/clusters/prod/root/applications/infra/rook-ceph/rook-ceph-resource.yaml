@@ -10,8 +10,7 @@ spec:
   source:
     repoURL: https://github.com/lucky-gun/kubernetes
     targetRevision: main
-    path: my-website/gitops/infrastructure/rook-ceph
-    kustomize: {}
+    path: my-website/gitops/infrastructure/rook-ceph/metadata
   destination:
     server: https://kubernetes.default.svc
     namespace: rook-ceph

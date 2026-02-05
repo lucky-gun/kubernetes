@@ -9,7 +9,6 @@ spec:
     repoURL: https://github.com/lucky-gun/kubernetes
     targetRevision: main
     path: my-website/gitops/clusters/prod/root
-    kustomize: {}
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd

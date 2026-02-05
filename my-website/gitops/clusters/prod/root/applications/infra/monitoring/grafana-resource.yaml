@@ -1,19 +1,19 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: nextcloud
+  name: grafana-resources
   namespace: argocd
   annotations:
     argocd.argoproj.io/sync-wave: "5"
 spec:
-  project: apps
+  project: monitoring
   source:
     repoURL: https://github.com/lucky-gun/kubernetes
     targetRevision: main
-    path: my-website/gitops/apps/nextcloud
+    path: my-website/gitops/infrastructure/monitoring/grafana/metadata
   destination:
     server: https://kubernetes.default.svc
-    namespace: apps
+    namespace: monitoring
   syncPolicy:
     automated:
       prune: true

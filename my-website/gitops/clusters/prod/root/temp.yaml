@@ -1,0 +1,16 @@
+spec:
+  sources:
+    - repoURL: https://helm.mariadb.com/mariadb-operator
+      chart: mariadb-operator
+      targetRevision: 25.10.4
+      helm:
+        valueFiles:
+          - $values/my-website/gitops/infrastructure/database/galera/values.yaml
+
+    - repoURL: https://github.com/lucky-gun/kubernetes
+      targetRevision: main
+      ref: values
+      path: my-website/gitops/infrastructure/rook-ceph
+      kustomize: {}
+
+# 기술적으로 가능하나 관리를 위해서 values적용까지만 하고, 나머지 리소스는 따로 파일 생성하는것을 추천

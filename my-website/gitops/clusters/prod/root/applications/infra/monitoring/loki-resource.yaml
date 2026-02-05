@@ -1,20 +1,19 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: galera-resources
+  name: loki-resources
   namespace: argocd
   annotations:
     argocd.argoproj.io/sync-wave: "5"
 spec:
-  project: database
+  project: monitoring
   source:
     repoURL: https://github.com/lucky-gun/kubernetes
     targetRevision: main
-    path: my-website/gitops/infrastructure/database/galera
-    kustomize: {}
+    path: my-website/gitops/infrastructure/monitoring/loki/metadata
   destination:
     server: https://kubernetes.default.svc
-    namespace: database
+    namespace: monitoring
   syncPolicy:
     automated:
       prune: true
@@ -23,4 +22,3 @@ spec:
       - CreateNamespace=true
       - SkipDryRunOnMissingResource=true
       - ServerSideApply=true
-

@@ -1,0 +1,121 @@
+replicas: 1
+ingress:
+  enabled: false
+
+persistence:
+  enabled: false
+#  type: pvc   # 만약 replicas=1일 경우,
+#  enabled: true
+#  size: 5Gi
+#  storageClassName: rook-ceph-block
+#  accessModes:
+#    - ReadWriteOnce
+
+admin:
+  existingSecret: grafana-admin
+  userKey: admin-user
+  passwordKey: admin-password
+
+envFromSecret: grafana-runtime
+podDisruptionBudget:
+  minAvailable: 1
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          topologyKey: kubernetes.io/hostname
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: grafana
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 3000
+
+grafana.ini:
+  server:
+    domain: grafana.lucky-gun.com
+    root_url: https://grafana.lucky-gun.com/
+
+  auth.anonymous:
+    enabled: true
+    org_name: Main Org.
+    org_role: Viewer
+
+  users:
+    allow_sign_up: false
+
+  security:
+    allow_embedding: false
+    cookie_samesite: lax
+    x_content_type_options: true
+    secret_key: $__env{GF_SECURITY_SECRET_KEY}
+
+  #database:
+  #  type: mysql
+  #  host: mariadb-galera.database.svc.cluster.local:3306
+  #  name: grafana_db
+  #  user: gf_admin
+  #  password: $__env{GF_DATABASE_PASSWORD}
+  #  ssl_mode: disable
+
+sidecar:
+  dashboards:
+    enabled: true
+    label: grafana_dashboard
+    folderAnnotation: k8s-sidecar-target-directory
+    folder: /tmp/dashboards
+    searchNamespace: ALL
+
+    SCProvider: true
+    provider:
+      name: sidecarProvider
+      foldersFromFilesStructure: true
+      allowUiUpdates: false
+      disableDelete: false
+      updateIntervalSeconds: 30
+
+  datasources:
+    enabled: true
+    label: grafana_datasource
+    labelValue: "1"
+    searchNamespace: ALL
+
+
+startupProbe:
+  enabled: true
+  httpGet:
+    path: /api/health
+    port: 3000
+  periodSeconds: 10
+  failureThreshold: 60     # 10분까지 부팅/마이그레이션 허용
+
+livenessProbe:
+  initialDelaySeconds: 180 # 최소 3분은 건드리지 말기
+  timeoutSeconds: 5
+  periodSeconds: 10
+  failureThreshold: 10
+
+readinessProbe:
+  initialDelaySeconds: 30
+  timeoutSeconds: 5        # 지금 1s라 너무 타이트함
+  periodSeconds: 10
+  failureThreshold: 6
+
+
+# 대시보드 provider(폴더 지정)
+#dashboardProviders:
+#  dashboardproviders.yaml:
+#    apiVersion: 1
+#    providers:
+#      - name: k8s-sidecar
+#        orgId: 1
+#        type: file
+#        disableDeletion: false
+#        editable: true
+#        options:
+#          path: /tmp/dashboards
+#          foldersFromFilesStructure: true
