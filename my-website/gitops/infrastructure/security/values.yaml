@@ -43,7 +43,7 @@ lapi:
       size: 100Mi
   envFrom:
     - secretRef:
-        name: crowdsec-keys
+        name: crowdsec-key
       
 
 config:
