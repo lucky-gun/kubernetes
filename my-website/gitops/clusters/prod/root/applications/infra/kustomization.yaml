@@ -12,7 +12,6 @@ resources:
   - monitoring/prometheus-adapter.yaml
   - monitoring/prometheus-resource.yaml
   - monitoring/loki.yaml
-  - monitoring/loki-resource.yaml
   - monitoring/alloy.yaml
   - monitoring/grafana.yaml
   - monitoring/grafana-resource.yaml
