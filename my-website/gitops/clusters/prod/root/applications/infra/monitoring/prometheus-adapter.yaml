@@ -10,7 +10,7 @@ spec:
     namespace: monitoring
   sources:
     - repoURL: https://prometheus-community.github.io/helm-charts
-      chart: prometheus-adatper
+      chart: prometheus-adapter
       targetRevision: 5.2.0
       helm:
         valueFiles:

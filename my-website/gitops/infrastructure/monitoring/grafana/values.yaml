@@ -100,7 +100,7 @@ livenessProbe:
   failureThreshold: 10
 
 readinessProbe:
-  initialDelaySeconds: 30
+  initialDelaySeconds: 180
   timeoutSeconds: 5        # 지금 1s라 너무 타이트함
   periodSeconds: 10
   failureThreshold: 6
