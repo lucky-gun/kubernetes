@@ -15,6 +15,12 @@ spec:
       namespace: jenkins
     - server: https://kubernetes.default.svc
       namespace: monitoring
+    - server: https://kubernetes.default.svc
+      namespace: rook-ceph
+    - server: https://kubernetes.default.svc
+      namespace: argocd
+    - server: https://kubernetes.default.svc
+      namespace: apps
   clusterResourceWhitelist:
     - group: '*'
       kind: '*'
