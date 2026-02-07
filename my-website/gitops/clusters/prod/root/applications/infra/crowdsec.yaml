@@ -3,26 +3,29 @@ kind: Application
 metadata:
   name: crowdsec
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
 spec:
   project: security
   destination:
     server: https://kubernetes.default.svc
     namespace: crowdsec
   sources:
+    - repoURL: https://github.com/lucky-gun/kubernetes
+      targetRevision: main
+      ref: values
+      path: my-website/gitops/infrastructure/security/metadata
     - repoURL: https://crowdsecurity.github.io/helm-charts
       chart: crowdsec
       targetRevision: 0.22.0
       helm:
         valueFiles:
           - $values/my-website/gitops/infrastructure/security/values.yaml
-    - repoURL: https://github.com/lucky-gun/kubernetes
-      targetRevision: main
-      ref: values
-      path: my-website/gitops/infrastructure/security/metadata
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+      - SkipDryRunOnMissingResource=true
       #- ServerSideApply=true
