@@ -15,15 +15,13 @@ spec:
       targetRevision: main
       path: my-website/gitops/clusters/prod/root/applications/infra
       directory:
-        include: '{database/*.yaml,rook-ceph/*.yaml}'
+        include: '{database/*.yaml,rook-ceph/*.yaml,sealed-secrets.yaml}'
         recurse: true
 
     - repoURL: https://github.com/lucky-gun/kubernetes
       targetRevision: main
       path: my-website/gitops/clusters/prod/root/projects
-      directory:
-        recurse: false
-        include: '{apps.yaml,database.yaml,infra.yaml,monitoring.yaml,security.yaml,storage.yaml}'
+      kustomize: {}
   syncPolicy:
     automated:
       prune: true
