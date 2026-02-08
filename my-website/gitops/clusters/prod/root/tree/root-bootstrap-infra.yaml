@@ -13,15 +13,10 @@ spec:
   sources:
     - repoURL: https://github.com/lucky-gun/kubernetes
       targetRevision: main
-      path: my-website/gitops/clusters/prod/root/applications/infra
-      directory:
-        include: '{database/*.yaml,rook-ceph/*.yaml,sealed-secrets.yaml}'
-        recurse: true
-
+      path: my-website/gitops/clusters/prod/root/applications/infra/bootstrap
     - repoURL: https://github.com/lucky-gun/kubernetes
       targetRevision: main
       path: my-website/gitops/clusters/prod/root/projects
-      kustomize: {}
   syncPolicy:
     automated:
       prune: true
