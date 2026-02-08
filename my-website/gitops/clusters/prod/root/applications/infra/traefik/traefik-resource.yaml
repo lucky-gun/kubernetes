@@ -3,8 +3,6 @@ kind: Application
 metadata:
   name: traefik-resources
   namespace: argocd
-  annotations:
-    argocd.argoproj.io/sync-wave: "6"
 spec:
   project: infra
   source:

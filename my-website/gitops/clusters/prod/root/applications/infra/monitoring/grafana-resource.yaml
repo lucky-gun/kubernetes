@@ -3,8 +3,6 @@ kind: Application
 metadata:
   name: grafana-resources
   namespace: argocd
-  annotations:
-    argocd.argoproj.io/sync-wave: "6"
 spec:
   project: monitoring
   source:
