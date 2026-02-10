@@ -14,7 +14,7 @@ spec:
       path: my-website/gitops/clusters/prod/root/applications/infra
       directory:
         recurse: true
-        include: '{database/galera-resource.yaml, crowdsec.yaml}'
+        include: '{database/galera-resource.yaml,crowdsec.yaml}'
   syncPolicy:
     automated:
       prune: true
