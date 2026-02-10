@@ -13,7 +13,7 @@ spec:
       targetRevision: main
       path: my-website/gitops/clusters/prod/root/applications/infra
       directory:
-        include: '{sealed-secrets.yaml, database/galera.yaml, database/redis.yaml, rook-ceph/rook-ceph.yaml'}
+        include: '{sealed-secrets.yaml,database/galera.yaml,database/redis.yaml,rook-ceph/rook-ceph.yaml}'
     - repoURL: https://github.com/lucky-gun/kubernetes
       targetRevision: main
       path: my-website/gitops/clusters/prod/root/projects

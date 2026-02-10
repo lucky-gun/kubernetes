@@ -13,9 +13,8 @@ spec:
       targetRevision: main
       path: my-website/gitops/clusters/prod/root/applications/infra
       directory:
-        recurse: true
-        include: 'monitoring/**'
-  syncPolicy:
+        include: '{jenkins.yaml, traefik/traefik.yaml, traefik/traefik-resource.yaml}' 
+ syncPolicy:
     automated:
       prune: true
       selfHeal: true
