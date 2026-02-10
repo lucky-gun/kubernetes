@@ -103,6 +103,7 @@ certificatesResolvers:
   myresolver:
     acme:
       email: "fallsky104@gmail.com"
+      caServer: "https://acme-staging-v02.api.letsencrypt.org/directory"
       storage: "/etc/traefik/letsencrypt/acme.json"
       dnsChallenge:
         provider: cloudflare
