@@ -3,8 +3,6 @@ kind: Application
 metadata:
   name: rook-ceph
   namespace: argocd
-  annotations:
-    argocd.argoproj.io/sync-wave: "-20"
 spec:
   project: storage
   destination:

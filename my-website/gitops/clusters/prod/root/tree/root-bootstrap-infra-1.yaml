@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root-bootstrap-infra-1
+  namespace: argocd
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  sources:
+    - repoURL: https://github.com/lucky-gun/kubernetes
+      targetRevision: main
+      path: my-website/gitops/clusters/prod/root/applications/infra
+      directory:
+        include: '{sealed-secrets.yaml, database/galera.yaml, database/redis.yaml, rook-ceph/rook-ceph.yaml'}
+    - repoURL: https://github.com/lucky-gun/kubernetes
+      targetRevision: main
+      path: my-website/gitops/clusters/prod/root/projects
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - SkipDryRunOnMissingResource=true
+      - ServerSideApply=true

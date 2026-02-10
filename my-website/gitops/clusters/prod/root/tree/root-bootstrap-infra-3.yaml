@@ -1,10 +1,8 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: root-bootstrap-infra
+  name: root-bootstrap-infra-3
   namespace: argocd
-  annotations:
-    argocd.argoproj.io/sync-wave: "0"
 spec:
   project: default
   destination:
@@ -13,10 +11,9 @@ spec:
   sources:
     - repoURL: https://github.com/lucky-gun/kubernetes
       targetRevision: main
-      path: my-website/gitops/clusters/prod/root/applications/infra/bootstrap
-    - repoURL: https://github.com/lucky-gun/kubernetes
-      targetRevision: main
-      path: my-website/gitops/clusters/prod/root/projects
+      path: my-website/gitops/clusters/prod/root/applications/infra
+      directory:
+        include: '{database/galera-resource.yaml, crowdsec.yaml}'
   syncPolicy:
     automated:
       prune: true

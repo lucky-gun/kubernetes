@@ -1,25 +1,22 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: galera-resources
+  name: rook-ceph-resources
   namespace: argocd
-  annotations:
-    argocd.argoproj.io/sync-wave: "20"
 spec:
-  project: database
+  project: storage
   source:
     repoURL: https://github.com/lucky-gun/kubernetes
     targetRevision: main
-    path: my-website/gitops/infrastructure/database/galera
+    path: my-website/gitops/infrastructure/rook-ceph/metadata
   destination:
     server: https://kubernetes.default.svc
-    namespace: database
+    namespace: rook-ceph
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
-      - SkipDryRunOnMissingResource=true
       - ServerSideApply=true
 
