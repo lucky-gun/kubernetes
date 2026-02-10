@@ -4,5 +4,6 @@ resources:
   - root-bootstrap-infra-1.yaml
   - root-bootstrap-infra-2.yaml
   - root-bootstrap-infra-3.yaml
-  #- root-bootstrap-infra-4.yaml
+  - root-bootstrap-infra-4.yaml
+  #- root-bootstrap-infra-5.yaml
   #- root-bootstrap-infra-5.yaml
