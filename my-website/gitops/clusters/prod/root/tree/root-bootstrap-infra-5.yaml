@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: root-bootstrap-infra-4
+  name: root-bootstrap-infra-5
   namespace: argocd
 spec:
   project: default

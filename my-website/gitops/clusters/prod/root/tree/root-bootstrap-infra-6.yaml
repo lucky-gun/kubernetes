@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: root-bootstrap-infra-4
+  name: root-bootstrap-infra-6
   namespace: argocd
 spec:
   project: default
@@ -15,7 +15,7 @@ spec:
       directory:
         recurse: true
         include: '{jenkins.yaml,traefik/**}' 
- syncPolicy:
+  syncPolicy:
     automated:
       prune: true
       selfHeal: true
