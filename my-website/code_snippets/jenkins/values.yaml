@@ -16,6 +16,10 @@ controller:
     - github-branch-source
     - credentials-binding
     - pipeline-stage-view
+    - git
+    - workflow-aggregator
+    - http_request
+    - blueocean
 
 persistence:
   enabled: true
