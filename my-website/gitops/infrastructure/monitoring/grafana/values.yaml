@@ -91,16 +91,16 @@ startupProbe:
     path: /api/health
     port: 3000
   periodSeconds: 10
-  failureThreshold: 60     # 10분까지 부팅/마이그레이션 허용
+  failureThreshold: 600     # 10분까지 부팅/마이그레이션 허용
 
 livenessProbe:
-  initialDelaySeconds: 180 # 최소 3분은 건드리지 말기
+  initialDelaySeconds: 480 # 최소 3분은 건드리지 말기
   timeoutSeconds: 5
   periodSeconds: 10
   failureThreshold: 10
 
 readinessProbe:
-  initialDelaySeconds: 180
+  initialDelaySeconds: 480
   timeoutSeconds: 5        # 지금 1s라 너무 타이트함
   periodSeconds: 10
   failureThreshold: 6

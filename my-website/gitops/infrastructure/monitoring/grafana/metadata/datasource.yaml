@@ -21,5 +21,5 @@ data:
         uid: PBFA97CFB590B2093
         type: prometheus
         access: proxy
-        url: http://prometheus-stack-kube-prom-prometheus.monitoring.svc.cluster.local:9090
+        url: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
         isDefault: true

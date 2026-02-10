@@ -1,5 +1,5 @@
 prometheus:
-  url: http://prometheus-stack-kube-prom-prometheus.monitoring.svc
+  url: http://kube-prometheus-stack-prometheus.monitoring.svc
   port: 9090
 
 rules:
