@@ -13,6 +13,7 @@ spec:
       targetRevision: main
       path: my-website/gitops/clusters/prod/root/applications/infra
       directory:
+        recurse: true
         include: '{rook-ceph/rook-ceph-resource.yaml}'
   syncPolicy:
     automated:

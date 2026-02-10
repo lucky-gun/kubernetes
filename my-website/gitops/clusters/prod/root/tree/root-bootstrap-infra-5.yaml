@@ -13,6 +13,7 @@ spec:
       targetRevision: main
       path: my-website/gitops/clusters/prod/root/applications/infra
       directory:
+        recurse: true
         include: '{jenkins.yaml, traefik/traefik.yaml, traefik/traefik-resource.yaml}' 
  syncPolicy:
     automated:
