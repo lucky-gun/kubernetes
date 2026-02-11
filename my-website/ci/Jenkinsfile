@@ -16,7 +16,7 @@ spec:
       set -eux
       apk add --no-cache \
         git curl ca-certificates coreutils openssh-client \
-        python3 py3-pyyaml \
+        python3 py3-pyaml \
         github-cli
       update-ca-certificates
       cat
