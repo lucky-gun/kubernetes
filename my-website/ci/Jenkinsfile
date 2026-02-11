@@ -2,19 +2,16 @@ pipeline {
   agent any
 
   environment {
-    FILE_PATH = 'my-website/gitops/apps/mediawiki/mediawiki.yaml'
+    FILE_PATH    = 'my-website/gitops/apps/mediawiki/mediawiki.yaml'
     NEW_REPLICAS = '2'
-    NEW_TAG = 'beta1'
-    SKIP_FLAG = '[skip-gitops]'   // 무한루프 방지용(이 커밋은 다시 빌드 안 타게)
-    GIT_CRED_ID = 'github-app'  // (추천) Secret text 토큰 credentialsId
-    REPO_HTTPS = 'https://github.com/lucky-gun/kubernetes.git'
+    NEW_TAG      = 'beta1'
+    SKIP_FLAG    = '[skip-gitops]'
+    PUSH_CRED_ID = 'github_pat_push'   // ← 새로 만든 Secret text ID
   }
 
   stages {
     stage('Checkout') {
-      steps {
-        checkout scm
-      }
+      steps { checkout scm }
     }
 
     stage('Guard (avoid loop)') {
@@ -39,17 +36,12 @@ pipeline {
           echo "=== Before ==="
           grep -nE "replicas:|image:[[:space:]]*luckygun/mediawiki:" "${FILE_PATH}" || true
 
-          # 1) replicas: (첫 번째 매칭 1개만 바꿈)
           sed -i -E "0,/^[[:space:]]*replicas:[[:space:]]*[0-9]+[[:space:]]*$/s//  replicas: ${NEW_REPLICAS}/" "${FILE_PATH}"
-
-          # 2) image 태그를 beta1로
-          #    image: luckygun/mediawiki:<anything>  -> image: luckygun/mediawiki:beta1
           sed -i -E "s|(^[[:space:]]*image:[[:space:]]*luckygun/mediawiki:).*|\\1${NEW_TAG}|g" "${FILE_PATH}"
 
           echo "=== After ==="
           grep -nE "replicas:|image:[[:space:]]*luckygun/mediawiki:" "${FILE_PATH}" || true
 
-          echo "=== Diff ==="
           git diff -- "${FILE_PATH}" || true
         '''
       }
@@ -57,11 +49,10 @@ pipeline {
 
     stage('Commit & Push') {
       steps {
-        withCredentials([string(credentialsId: "${env.GIT_CRED_ID}", variable: 'GITHUB-APP')]) {
+        withCredentials([string(credentialsId: "${env.PUSH_CRED_ID}", variable: 'GITHUB_TOKEN')]) {
           sh '''
             set -euo pipefail
 
-            # 변경 없으면 종료
             if ! git status --porcelain | grep -q .; then
               echo "No changes."
               exit 0
@@ -73,8 +64,7 @@ pipeline {
             git add "${FILE_PATH}"
             git commit -m "gitops: mediawiki replicas=${NEW_REPLICAS}, tag=${NEW_TAG} ${SKIP_FLAG}"
 
-            # 토큰으로 push (GitHub App으로 checkout 했어도 push는 토큰이 제일 확실)
-            git remote set-url origin "https://x-access-token:${GITHUB-APP}@github.com/lucky-gun/kubernetes.git"
+            git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/lucky-gun/kubernetes.git"
             git push origin HEAD:main
           '''
         }
