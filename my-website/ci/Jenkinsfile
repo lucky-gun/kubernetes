@@ -3,8 +3,8 @@ pipeline {
 
   environment {
     FILE_PATH    = 'my-website/gitops/apps/mediawiki/mediawiki.yaml'
-    NEW_REPLICAS = '2'
-    NEW_TAG      = 'beta1'
+    NEW_REPLICAS = '3'
+    NEW_TAG      = 'myblog-beta'
     SKIP_FLAG    = '[skip-gitops]'
     PUSH_CRED_ID = 'github_pat_push' // 지금 쓰는 PAT (PR 권한도 있어야 함)
     BASE_BRANCH  = 'main'
