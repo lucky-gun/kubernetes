@@ -1,1 +1,100 @@
+pipeline {
+  agent any
+  options { timestamps(); disableConcurrentBuilds() }
+
+  environment {
+    // === 너 레포 ===
+    REPO_SLUG = "lucky-gun/kubernetes"
+    BASE_BRANCH = "main"
+
+    // === 수정할 GitOps 파일 경로(모노레포) ===
+    // 예: my-website/gitops/apps/myapp/values-dev.yaml
+    TARGET_FILE = "my-website/gitops/CHANGE_ME.yaml"
+
+    // 커밋 작성자
+    GIT_AUTHOR_NAME  = "jenkins-gitops-bot"
+    GIT_AUTHOR_EMAIL = "jenkins-gitops-bot@local"
+  }
+
+  stages {
+    stage("Set tag") {
+      steps {
+        script {
+          def sha = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD || echo nosha").trim()
+          env.NEW_TAG = "demo-${BUILD_NUMBER}-${sha}"
+          echo "NEW_TAG=${env.NEW_TAG}"
+        }
+      }
+    }
+
+    stage("4-A: clone / modify / push (with GitHub App token)") {
+      steps {
+        withCredentials([usernamePassword(
+          credentialsId: 'github-app',
+          usernameVariable: 'GH_USER',
+          passwordVariable: 'GH_TOKEN'
+        )]) {
+          sh '''
+            set -euo pipefail
+
+            rm -rf work && mkdir -p work && cd work
+
+            # GitHub App 설치 토큰으로 HTTPS git 접근
+            REPO_URL="https://x-access-token:${GH_TOKEN}@github.com/${REPO_SLUG}.git"
+
+            git clone --depth=1 --branch "${BASE_BRANCH}" "${REPO_URL}" repo
+            cd repo
+
+            git config user.name  "${GIT_AUTHOR_NAME}"
+            git config user.email "${GIT_AUTHOR_EMAIL}"
+
+            BRANCH="jenkins-demo-${NEW_TAG}"
+            git checkout -b "${BRANCH}"
+
+            test -f "${TARGET_FILE}" || (echo "[ERROR] file not found: ${TARGET_FILE}" && exit 1)
+
+            # 아주 단순하게 파일 끝에 한 줄 추가(동작 검증용)
+            echo "# jenkins demo: ${NEW_TAG}" >> "${TARGET_FILE}"
+
+            git add "${TARGET_FILE}"
+            git commit -m "demo: update gitops (${NEW_TAG}) [skip ci]"
+            git push -u origin "${BRANCH}"
+
+            echo "BRANCH=${BRANCH}" > ../branch.env
+          '''
+        }
+      }
+    }
+
+    stage("4-B: create PR via GitHub API") {
+      steps {
+        withCredentials([usernamePassword(
+          credentialsId: 'github-app',
+          usernameVariable: 'GH_USER',
+          passwordVariable: 'GH_TOKEN'
+        )]) {
+          sh '''
+            set -euo pipefail
+            source work/branch.env
+
+            PR_JSON=$(cat <<EOF
+{
+  "title": "demo: gitops change ${NEW_TAG}",
+  "head": "${BRANCH}",
+  "base": "${BASE_BRANCH}",
+  "body": "Automated by Jenkins demo\\n\\n- tag: ${NEW_TAG}\\n- file: ${TARGET_FILE}"
+}
+EOF
+)
+            curl -fsSL -X POST \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${REPO_SLUG}/pulls" \
+              -d "${PR_JSON}" | cat
+          '''
+        }
+      }
+    }
+  }
+}
 
