@@ -2,7 +2,6 @@ pipeline {
   agent any
 
   options {
-    timestamps()
     disableConcurrentBuilds()
     skipDefaultCheckout(true)                 // 자동 checkout 끄고 우리가 명확히 제어
     timeout(time: 30, unit: 'MINUTES')        // 무한 대기 방지
