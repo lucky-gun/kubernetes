@@ -1,43 +1,74 @@
 pipeline {
   agent any
 
+  parameters {
+    string(name: 'NEW_TAG', defaultValue: 'myblog-beta', description: 'mediawiki 이미지 태그')
+    string(name: 'NEW_REPLICAS', defaultValue: '3', description: 'mediawiki replicas')
+  }
+
   environment {
     FILE_PATH    = 'my-website/gitops/apps/mediawiki/mediawiki.yaml'
-    NEW_REPLICAS = '3'
-    NEW_TAG      = 'myblog-beta'
     SKIP_FLAG    = '[skip-gitops]'
     PUSH_CRED_ID = 'github_pat_push'   // Secret text(PAT)
     BASE_BRANCH  = 'main'
+    REPO_OWNER   = 'lucky-gun'
+    REPO_NAME    = 'kubernetes'
   }
 
   stages {
     stage('Checkout') {
+      steps { checkout scm }
+    }
+
+    stage('Guard (avoid loop)') {
       steps {
-        checkout scm
+        script {
+          def msg = sh(script: "git log -1 --pretty=%B", returnStdout: true).trim()
+          if (msg.contains(env.SKIP_FLAG)) {
+            env.SKIP = 'true'
+            echo "Detected ${env.SKIP_FLAG} in last commit message. Skipping to avoid loop."
+          }
+        }
       }
     }
 
     stage('Edit YAML') {
+      when { expression { env.SKIP != 'true' } }
       steps {
         sh '''
           set -euo pipefail
 
+          NEW_TAG="${NEW_TAG}"
+          NEW_REPLICAS="${NEW_REPLICAS}"
+
           test -f "${FILE_PATH}" || (echo "ERROR: not found ${FILE_PATH}" && exit 1)
 
+          echo "=== Before (grep) ==="
+          grep -nE "replicas:|image:[[:space:]]*luckygun/mediawiki:" "${FILE_PATH}" || true
+
+          # replicas 1개만 변경
           sed -i -E "0,/^[[:space:]]*replicas:[[:space:]]*[0-9]+[[:space:]]*$/s//  replicas: ${NEW_REPLICAS}/" "${FILE_PATH}"
+
+          # image tag 변경
           sed -i -E "s|(^[[:space:]]*image:[[:space:]]*luckygun/mediawiki:).*|\\1${NEW_TAG}|g" "${FILE_PATH}"
 
+          echo "=== After (grep) ==="
+          grep -nE "replicas:|image:[[:space:]]*luckygun/mediawiki:" "${FILE_PATH}" || true
+
+          echo "=== Diff ==="
           git diff -- "${FILE_PATH}" || true
         '''
       }
     }
 
     stage('Create PR') {
+      when { expression { env.SKIP != 'true' } }
       steps {
         withCredentials([string(credentialsId: "${env.PUSH_CRED_ID}", variable: 'GITHUB_TOKEN')]) {
           sh '''
             set -euo pipefail
 
+            # 변경 없으면 종료
             if ! git status --porcelain | grep -q .; then
               echo "No changes."
               exit 0
@@ -46,17 +77,25 @@ pipeline {
             git config user.name "jenkins-bot"
             git config user.email "jenkins-bot@local"
 
-            BR="gitops/mediawiki-${NEW_TAG}-r${NEW_REPLICAS}-$(date +%Y%m%d-%H%M%S)"
-            git checkout -b "$BR"
+            BASE_SHA="$(git rev-parse --short HEAD)"
+            BUILD_NO="${BUILD_NUMBER:-manual}"
 
+            BR="gitops/mediawiki-${NEW_TAG}-r${NEW_REPLICAS}-$(date +%Y%m%d-%H%M%S)"
+            echo "BRANCH: ${BR}"
+            echo "BASE_SHA: ${BASE_SHA}"
+            echo "BUILD_NO: ${BUILD_NO}"
+
+            git checkout -b "$BR"
             git add "${FILE_PATH}"
             git commit -m "gitops: mediawiki replicas=${NEW_REPLICAS}, tag=${NEW_TAG} ${SKIP_FLAG}"
 
-            git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/lucky-gun/kubernetes.git"
+            # token으로 push
+            git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${REPO_OWNER}/${REPO_NAME}.git"
             git push -u origin "$BR"
 
-            TITLE="gitops: mediawiki tag=${NEW_TAG}, replicas=${NEW_REPLICAS}"
-            BODY="Automated change by Jenkins.\\n\\n- file: ${FILE_PATH}\\n- tag: ${NEW_TAG}\\n- replicas: ${NEW_REPLICAS}"
+            # PR 생성 (GitHub REST API)
+            TITLE="gitops: mediawiki tag=${NEW_TAG}, replicas=${NEW_REPLICAS} (build #${BUILD_NO}, base ${BASE_SHA})"
+            BODY="Automated change by Jenkins.\\n\\n- file: ${FILE_PATH}\\n- tag: ${NEW_TAG}\\n- replicas: ${NEW_REPLICAS}\\n- base_sha: ${BASE_SHA}\\n- build: ${BUILD_NO}"
 
             cat > payload.json <<EOF
 {
@@ -71,15 +110,42 @@ EOF
             cat payload.json
 
             echo "=== Creating PR ==="
-            curl -sS -X POST \
+            HTTP_CODE="$(curl -sS -o pr.json -w "%{http_code}" -X POST \
               -H "Authorization: Bearer ${GITHUB_TOKEN}" \
               -H "Accept: application/vnd.github+json" \
-              https://api.github.com/repos/lucky-gun/kubernetes/pulls \
-              -d @payload.json \
-              | tee pr.json
+              "https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls" \
+              -d @payload.json)"
 
-            echo "=== PR url ==="
-            grep -oE '"html_url"\\s*:\\s*"[^"]+"' pr.json || true
+            echo "HTTP_CODE=${HTTP_CODE}"
+            cat pr.json
+
+            if [ "${HTTP_CODE}" = "201" ]; then
+              echo "=== PR url ==="
+              # PR 응답엔 html_url이 여러 개 들어가니 첫 번째(=PR)만 출력
+              grep -m 1 -oE '"html_url"[[:space:]]*:[[:space:]]*"[^"]+"' pr.json || true
+              exit 0
+            fi
+
+            if [ "${HTTP_CODE}" = "422" ]; then
+              echo "PR already exists (422). Trying to find existing PR url..."
+
+              # 같은 head/base로 열린 PR 조회
+              # head는 "owner:branch" 형식
+              curl -sS -o pr_list.json \
+                -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+                -H "Accept: application/vnd.github+json" \
+                "https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls?state=open&head=${REPO_OWNER}:${BR}&base=${BASE_BRANCH}"
+
+              echo "=== Existing PR url (if any) ==="
+              # 배열 응답이라 html_url이 있을 수 있음. 첫 번째만 출력
+              grep -m 1 -oE '"html_url"[[:space:]]*:[[:space:]]*"[^"]+"' pr_list.json || true
+
+              # 422는 포폴 흐름상 실패로 보지 않음
+              exit 0
+            fi
+
+            echo "ERROR: PR creation failed with HTTP ${HTTP_CODE}"
+            exit 1
           '''
         }
       }
