@@ -1,172 +1,133 @@
 pipeline {
-  agent {
-    kubernetes {
-      defaultContainer 'tools'
-      yaml """
-apiVersion: v1
-kind: Pod
-spec:
-  containers:
-  - name: tools
-    image: alpine:3.20
-    command:
-    - sh
-    - -c
-    - |
-      set -eux
-      apk add --no-cache \
-        git curl ca-certificates coreutils openssh-client \
-        python3 py3-pyaml \
-        github-cli
-      update-ca-certificates
-      cat
-    tty: true
-"""
-    }
-  }
-
-  options {
-    timeout(time: 20, unit: 'MINUTES')
-    disableConcurrentBuilds()
-    skipDefaultCheckout(true)
-  }
+  agent any
+  options { timestamps(); disableConcurrentBuilds() }
 
   parameters {
-    string(name: 'NEW_REPLICAS', defaultValue: '2', description: 'target replicas (ex: 2)')
+    string(name: 'BASE_BRANCH', defaultValue: 'main', description: 'PR 대상 base 브랜치')
+    string(name: 'GITOPS_PATH', defaultValue: 'my-website/gitops/overlays/dev', description: 'GitOps 경로(없으면 생성)')
+    string(name: 'SMOKE_FILE', defaultValue: 'jenkins-smoke.txt', description: 'PR 테스트 파일명')
+    booleanParam(name: 'ONLY_SMOKE', defaultValue: true, description: 'true면 smoke 파일만 업데이트')
   }
 
   environment {
-    REPO        = "lucky-gun/kubernetes"
-    BASE_BRANCH = "main"
-    FILE_PATH   = "my-website/gitops/apps/mediawiki/mediawiki.yaml"
+    // Jenkins Credentials ID (네 Jenkins에 만들어둔 ID로 맞춰줘)
+    GH_APP_ID_CRED          = 'github-app-id'                 // Secret text
+    GH_INSTALL_ID_CRED      = 'github-app-installation-id'    // Secret text
+    GH_APP_KEY_PEM_CRED     = 'github-app-private-key-pem'    // Secret file (.pem)
 
-    NEW_REPLICAS = "${params.NEW_REPLICAS}"
-
-    // 🔧 여기를 네 Jenkins Secret Text credentialId로 변경
-    GH_TOKEN_CRED_ID = "github-app-token"
+    REPO_OWNER = 'lucky-gun'
+    REPO_NAME  = 'kubernetes'
   }
 
   stages {
-    stage("Checkout") {
+    stage('Checkout') {
       steps {
-        container('tools') {
-          checkout scm
-        }
+        checkout scm
+        sh 'git rev-parse --short HEAD'
       }
     }
 
-    stage("Edit replicas 3 -> NEW_REPLICAS") {
+    stage('Create GitOps PR') {
       steps {
-        container('tools') {
+        withCredentials([
+          string(credentialsId: "${GH_APP_ID_CRED}", variable: 'GITHUB_APP_ID'),
+          string(credentialsId: "${GH_INSTALL_ID_CRED}", variable: 'GITHUB_INSTALLATION_ID'),
+          file(credentialsId: "${GH_APP_KEY_PEM_CRED}", variable: 'GITHUB_APP_PRIVATE_KEY')
+        ]) {
           sh '''
             set -euo pipefail
-            : "${NEW_REPLICAS:=2}"
-            echo "NEW_REPLICAS=$NEW_REPLICAS"
-            test -f "${FILE_PATH}"
 
-            python3 - <<'PY'
-import os, sys, yaml
+            # ----- 1) GitHub App Installation Token 발급 (JWT -> access_token) -----
+            b64url() { openssl base64 -e -A | tr '+/' '-_' | tr -d '='; }
 
-path = os.environ["FILE_PATH"]
-new_repl = int(os.environ.get("NEW_REPLICAS", "2"))
+            header='{"alg":"RS256","typ":"JWT"}'
+            now="$(date +%s)"
+            iat="$((now-60))"
+            exp="$((now+540))"
+            payload="{\"iat\":${iat},\"exp\":${exp},\"iss\":${GITHUB_APP_ID}}"
 
-with open(path, "r", encoding="utf-8") as f:
-    docs = list(yaml.safe_load_all(f))
+            unsigned="$(printf '%s' "$header" | b64url).$(printf '%s' "$payload" | b64url)"
+            sig="$(printf '%s' "$unsigned" | openssl dgst -binary -sha256 -sign "$GITHUB_APP_PRIVATE_KEY" | b64url)"
+            jwt="${unsigned}.${sig}"
 
-changed = False
-for d in docs:
-    if isinstance(d, dict):
-        spec = d.get("spec")
-        if isinstance(spec, dict) and spec.get("replicas") == 3:
-            spec["replicas"] = new_repl
-            changed = True
+            token_json="$(curl -sS -X POST \
+              -H "Authorization: Bearer ${jwt}" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/app/installations/${GITHUB_INSTALLATION_ID}/access_tokens")"
 
-if not changed:
-    print("No change made (spec.replicas was not 3). Failing to avoid empty PR.")
-    sys.exit(2)
+            GH_TOKEN="$(python3 -c 'import sys,json; print(json.load(sys.stdin).get("token",""))' <<< "$token_json")"
+            if [ -z "$GH_TOKEN" ]; then
+              echo "❌ Failed to get installation token. Response below:"
+              echo "$token_json"
+              exit 1
+            fi
 
-with open(path, "w", encoding="utf-8") as f:
-    yaml.safe_dump_all(docs, f, sort_keys=False)
+            # ----- 2) Git push를 token으로 하도록 GIT_ASKPASS 세팅 -----
+            cat > ./askpass.sh <<'EOF'
+#!/bin/sh
+case "$1" in
+  Username*) echo "x-access-token" ;;
+  Password*) echo "${GH_TOKEN}" ;;
+esac
+EOF
+            chmod +x ./askpass.sh
+            export GIT_ASKPASS="$PWD/askpass.sh"
+            export GIT_TERMINAL_PROMPT=0
 
-print(f"Updated replicas: 3 -> {new_repl}")
-PY
+            git remote set-url origin "https://github.com/${REPO_OWNER}/${REPO_NAME}.git"
 
-            git diff -- "${FILE_PATH}" | tee /tmp/diff.txt
-            test -s /tmp/diff.txt
+            git fetch origin "${BASE_BRANCH}"
+            git checkout -B "${BASE_BRANCH}" "origin/${BASE_BRANCH}"
+
+            SHORT_SHA="$(git rev-parse --short HEAD)"
+            BR="jenkins/gitops-${BUILD_NUMBER}-${SHORT_SHA}"
+            git checkout -b "$BR"
+
+            # ----- 3) my-website/gitops 기준으로 변경 만들기 (smoke 파일) -----
+            mkdir -p "${GITOPS_PATH}"
+            F="${GITOPS_PATH}/${SMOKE_FILE}"
+            {
+              echo "build=${BUILD_NUMBER}"
+              echo "sha=${SHORT_SHA}"
+              echo "time=$(date -Is)"
+              echo "gitops_path=${GITOPS_PATH}"
+            } > "$F"
+
+            git config user.email "jenkins-bot@lucky-gun.local"
+            git config user.name  "jenkins-bot"
+            git add "$F"
+            git commit -m "chore(gitops): smoke update (build ${BUILD_NUMBER})"
+
+            git push origin "$BR"
+
+            # ----- 4) PR 생성 -----
+            pr_payload="$(cat <<JSON
+{
+  "title": "chore(gitops): smoke update (build ${BUILD_NUMBER})",
+  "head": "${BR}",
+  "base": "${BASE_BRANCH}",
+  "body": "Automated by Jenkins.\\n\\n- path: ${GITOPS_PATH}/${SMOKE_FILE}\\n- sha: ${SHORT_SHA}"
+}
+JSON
+)"
+            pr_resp="$(curl -sS -X POST \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls" \
+              -d "$pr_payload")"
+
+            PR_URL="$(python3 -c 'import sys,json; print(json.load(sys.stdin).get("html_url",""))' <<< "$pr_resp")"
+            if [ -n "$PR_URL" ]; then
+              echo "✅ PR created: $PR_URL"
+            else
+              echo "❌ PR create failed. Response below:"
+              echo "$pr_resp"
+              exit 1
+            fi
           '''
         }
       }
-    }
-
-    stage("Commit & Push branch") {
-      steps {
-        container('tools') {
-          withCredentials([string(credentialsId: "${env.GH_TOKEN_CRED_ID}", variable: "GH_TOKEN")]) {
-            sh '''
-              set -euo pipefail
-              : "${NEW_REPLICAS:=2}"
-
-              BRANCH="chore/scale-mediawiki-${NEW_REPLICAS}-${BUILD_NUMBER}"
-              echo "$BRANCH" > /tmp/branch_name.txt
-
-              git checkout -b "$BRANCH"
-              git config user.name  "jenkins-bot"
-              git config user.email "jenkins-bot@users.noreply.github.com"
-
-              git add "${FILE_PATH}"
-              git commit -m "chore(mediawiki): scale replicas to ${NEW_REPLICAS} (pipeline test)"
-
-              # token으로 push
-              set +x
-              git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
-              git push -u origin "$BRANCH"
-              set -x
-            '''
-          }
-        }
-      }
-    }
-
-    stage("Create Pull Request") {
-      steps {
-        container('tools') {
-          withCredentials([string(credentialsId: "${env.GH_TOKEN_CRED_ID}", variable: "GH_TOKEN")]) {
-            sh '''
-              set -euo pipefail
-              BRANCH="$(cat /tmp/branch_name.txt)"
-
-              export GITHUB_TOKEN="${GH_TOKEN}"
-
-              PR_URL="$(gh pr create \
-                --repo "${REPO}" \
-                --base "${BASE_BRANCH}" \
-                --head "$BRANCH" \
-                --title "Scale mediawiki replicas: 3 -> ${NEW_REPLICAS} (test)" \
-                --body "MVP test: Jenkins creates PR updating ${FILE_PATH} replicas 3->${NEW_REPLICAS}." \
-              )"
-
-              echo "$PR_URL" > /tmp/pr_url.txt
-              echo "PR created: $PR_URL"
-            '''
-          }
-        }
-
-        script {
-          env.PR_URL = sh(script: "cat /tmp/pr_url.txt", returnStdout: true).trim()
-        }
-      }
-    }
-  }
-
-  post {
-    success {
-      echo "RESULT: SUCCESS"
-      echo "PR_URL=${env.PR_URL}"
-      echo "NEW_REPLICAS=${env.NEW_REPLICAS}"
-    }
-    failure {
-      echo "RESULT: FAILURE"
-      echo "NEW_REPLICAS=${env.NEW_REPLICAS}"
     }
   }
 }
