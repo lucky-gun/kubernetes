@@ -39,7 +39,7 @@ pipeline {
           set -e
           set -o pipefail
 
-          # 파라미터가 비면(Branch indexing 등) 그냥 스킵 (파일 망가지는 것 방지)
+          # 파라미터가 비면(Branch indexing 등) 스킵
           if [ -z "${NEW_TAG:-}" ] || [ -z "${NEW_REPLICAS:-}" ]; then
             echo "Missing params -> skip (NEW_TAG/NEW_REPLICAS)"
             exit 0
@@ -49,9 +49,6 @@ pipeline {
 
           sed -i -E "0,/^[[:space:]]*replicas:[[:space:]]*[0-9]+[[:space:]]*$/s//  replicas: ${NEW_REPLICAS}/" "${FILE_PATH}"
           sed -i -E "s|(^[[:space:]]*image:[[:space:]]*luckygun/mediawiki:).*|\\1${NEW_TAG}|g" "${FILE_PATH}"
-
-          # ✅ 유지: 변경점 확인
-          git diff -- "${FILE_PATH}" || true
         '''
       }
     }
@@ -130,7 +127,6 @@ EOF
             fi
 
             echo "ERROR: PR creation failed with HTTP ${HTTP_CODE}"
-            # ✅ 유지: 실패 시 원인 분석용
             cat pr.json
             exit 1
           '''
