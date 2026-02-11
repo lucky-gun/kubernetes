@@ -1,130 +1,81 @@
 pipeline {
   agent any
-  options { timestamps(); disableConcurrentBuilds() }
-
-  parameters {
-    string(name: 'BASE_BRANCH', defaultValue: 'main', description: 'PR 대상 base 브랜치')
-    string(name: 'GITOPS_PATH', defaultValue: 'my-website/gitops/overlays/dev', description: 'GitOps 경로(없으면 생성)')
-    string(name: 'SMOKE_FILE', defaultValue: 'jenkins-smoke.txt', description: 'PR 테스트 파일명')
-    booleanParam(name: 'ONLY_SMOKE', defaultValue: true, description: 'true면 smoke 파일만 업데이트')
-  }
 
   environment {
-    // Jenkins Credentials ID (네 Jenkins에 만들어둔 ID로 맞춰줘)
-    GH_APP_ID_CRED          = 'github-app-id'                 // Secret text
-    GH_INSTALL_ID_CRED      = 'github-app-installation-id'    // Secret text
-    GH_APP_KEY_PEM_CRED     = 'github-app-private-key-pem'    // Secret file (.pem)
-
-    REPO_OWNER = 'lucky-gun'
-    REPO_NAME  = 'kubernetes'
+    FILE_PATH = 'my-website/gitops/apps/mediawiki/mediawiki.yaml'
+    NEW_REPLICAS = '2'
+    NEW_TAG = 'beta1'
+    SKIP_FLAG = '[skip-gitops]'   // 무한루프 방지용(이 커밋은 다시 빌드 안 타게)
+    GIT_CRED_ID = 'github_token'  // (추천) Secret text 토큰 credentialsId
+    REPO_HTTPS = 'https://github.com/lucky-gun/kubernetes.git'
   }
 
   stages {
     stage('Checkout') {
       steps {
         checkout scm
-        sh 'git rev-parse --short HEAD'
       }
     }
 
-    stage('Create GitOps PR') {
+    stage('Guard (avoid loop)') {
       steps {
-        withCredentials([
-          string(credentialsId: "${GH_APP_ID_CRED}", variable: 'GITHUB_APP_ID'),
-          string(credentialsId: "${GH_INSTALL_ID_CRED}", variable: 'GITHUB_INSTALLATION_ID'),
-          file(credentialsId: "${GH_APP_KEY_PEM_CRED}", variable: 'GITHUB_APP_PRIVATE_KEY')
-        ]) {
+        script {
+          def msg = sh(script: "git log -1 --pretty=%B", returnStdout: true).trim()
+          if (msg.contains(env.SKIP_FLAG)) {
+            currentBuild.result = 'SUCCESS'
+            error("Skip: this is a gitops commit")
+          }
+        }
+      }
+    }
+
+    stage('Edit YAML') {
+      steps {
+        sh '''
+          set -euo pipefail
+
+          test -f "${FILE_PATH}" || (echo "ERROR: not found ${FILE_PATH}" && exit 1)
+
+          echo "=== Before ==="
+          grep -nE "replicas:|image:[[:space:]]*luckygun/mediawiki:" "${FILE_PATH}" || true
+
+          # 1) replicas: (첫 번째 매칭 1개만 바꿈)
+          sed -i -E "0,/^[[:space:]]*replicas:[[:space:]]*[0-9]+[[:space:]]*$/s//  replicas: ${NEW_REPLICAS}/" "${FILE_PATH}"
+
+          # 2) image 태그를 beta1로
+          #    image: luckygun/mediawiki:<anything>  -> image: luckygun/mediawiki:beta1
+          sed -i -E "s|(^[[:space:]]*image:[[:space:]]*luckygun/mediawiki:).*|\\1${NEW_TAG}|g" "${FILE_PATH}"
+
+          echo "=== After ==="
+          grep -nE "replicas:|image:[[:space:]]*luckygun/mediawiki:" "${FILE_PATH}" || true
+
+          echo "=== Diff ==="
+          git diff -- "${FILE_PATH}" || true
+        '''
+      }
+    }
+
+    stage('Commit & Push') {
+      steps {
+        withCredentials([string(credentialsId: "${env.GIT_CRED_ID}", variable: 'GITHUB_TOKEN')]) {
           sh '''
             set -euo pipefail
 
-            # ----- 1) GitHub App Installation Token 발급 (JWT -> access_token) -----
-            b64url() { openssl base64 -e -A | tr '+/' '-_' | tr -d '='; }
-
-            header='{"alg":"RS256","typ":"JWT"}'
-            now="$(date +%s)"
-            iat="$((now-60))"
-            exp="$((now+540))"
-            payload="{\"iat\":${iat},\"exp\":${exp},\"iss\":${GITHUB_APP_ID}}"
-
-            unsigned="$(printf '%s' "$header" | b64url).$(printf '%s' "$payload" | b64url)"
-            sig="$(printf '%s' "$unsigned" | openssl dgst -binary -sha256 -sign "$GITHUB_APP_PRIVATE_KEY" | b64url)"
-            jwt="${unsigned}.${sig}"
-
-            token_json="$(curl -sS -X POST \
-              -H "Authorization: Bearer ${jwt}" \
-              -H "Accept: application/vnd.github+json" \
-              "https://api.github.com/app/installations/${GITHUB_INSTALLATION_ID}/access_tokens")"
-
-            GH_TOKEN="$(python3 -c 'import sys,json; print(json.load(sys.stdin).get("token",""))' <<< "$token_json")"
-            if [ -z "$GH_TOKEN" ]; then
-              echo "❌ Failed to get installation token. Response below:"
-              echo "$token_json"
-              exit 1
+            # 변경 없으면 종료
+            if ! git status --porcelain | grep -q .; then
+              echo "No changes."
+              exit 0
             fi
 
-            # ----- 2) Git push를 token으로 하도록 GIT_ASKPASS 세팅 -----
-            cat > ./askpass.sh <<'EOF'
-#!/bin/sh
-case "$1" in
-  Username*) echo "x-access-token" ;;
-  Password*) echo "${GH_TOKEN}" ;;
-esac
-EOF
-            chmod +x ./askpass.sh
-            export GIT_ASKPASS="$PWD/askpass.sh"
-            export GIT_TERMINAL_PROMPT=0
+            git config user.name "jenkins-bot"
+            git config user.email "jenkins-bot@local"
 
-            git remote set-url origin "https://github.com/${REPO_OWNER}/${REPO_NAME}.git"
+            git add "${FILE_PATH}"
+            git commit -m "gitops: mediawiki replicas=${NEW_REPLICAS}, tag=${NEW_TAG} ${SKIP_FLAG}"
 
-            git fetch origin "${BASE_BRANCH}"
-            git checkout -B "${BASE_BRANCH}" "origin/${BASE_BRANCH}"
-
-            SHORT_SHA="$(git rev-parse --short HEAD)"
-            BR="jenkins/gitops-${BUILD_NUMBER}-${SHORT_SHA}"
-            git checkout -b "$BR"
-
-            # ----- 3) my-website/gitops 기준으로 변경 만들기 (smoke 파일) -----
-            mkdir -p "${GITOPS_PATH}"
-            F="${GITOPS_PATH}/${SMOKE_FILE}"
-            {
-              echo "build=${BUILD_NUMBER}"
-              echo "sha=${SHORT_SHA}"
-              echo "time=$(date -Is)"
-              echo "gitops_path=${GITOPS_PATH}"
-            } > "$F"
-
-            git config user.email "jenkins-bot@lucky-gun.local"
-            git config user.name  "jenkins-bot"
-            git add "$F"
-            git commit -m "chore(gitops): smoke update (build ${BUILD_NUMBER})"
-
-            git push origin "$BR"
-
-            # ----- 4) PR 생성 -----
-            pr_payload="$(cat <<JSON
-{
-  "title": "chore(gitops): smoke update (build ${BUILD_NUMBER})",
-  "head": "${BR}",
-  "base": "${BASE_BRANCH}",
-  "body": "Automated by Jenkins.\\n\\n- path: ${GITOPS_PATH}/${SMOKE_FILE}\\n- sha: ${SHORT_SHA}"
-}
-JSON
-)"
-            pr_resp="$(curl -sS -X POST \
-              -H "Accept: application/vnd.github+json" \
-              -H "Authorization: Bearer ${GH_TOKEN}" \
-              -H "X-GitHub-Api-Version: 2022-11-28" \
-              "https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls" \
-              -d "$pr_payload")"
-
-            PR_URL="$(python3 -c 'import sys,json; print(json.load(sys.stdin).get("html_url",""))' <<< "$pr_resp")"
-            if [ -n "$PR_URL" ]; then
-              echo "✅ PR created: $PR_URL"
-            else
-              echo "❌ PR create failed. Response below:"
-              echo "$pr_resp"
-              exit 1
-            fi
+            # 토큰으로 push (GitHub App으로 checkout 했어도 push는 토큰이 제일 확실)
+            git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/lucky-gun/kubernetes.git"
+            git push origin HEAD:main
           '''
         }
       }
