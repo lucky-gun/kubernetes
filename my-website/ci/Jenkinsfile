@@ -6,7 +6,7 @@ pipeline {
     NEW_REPLICAS = '2'
     NEW_TAG = 'beta1'
     SKIP_FLAG = '[skip-gitops]'   // 무한루프 방지용(이 커밋은 다시 빌드 안 타게)
-    GIT_CRED_ID = 'github_token'  // (추천) Secret text 토큰 credentialsId
+    GIT_CRED_ID = 'github-app'  // (추천) Secret text 토큰 credentialsId
     REPO_HTTPS = 'https://github.com/lucky-gun/kubernetes.git'
   }
 
@@ -57,7 +57,7 @@ pipeline {
 
     stage('Commit & Push') {
       steps {
-        withCredentials([string(credentialsId: "${env.GIT_CRED_ID}", variable: 'GITHUB_TOKEN')]) {
+        withCredentials([string(credentialsId: "${env.GIT_CRED_ID}", variable: 'GITHUB-APP')]) {
           sh '''
             set -euo pipefail
 
@@ -74,7 +74,7 @@ pipeline {
             git commit -m "gitops: mediawiki replicas=${NEW_REPLICAS}, tag=${NEW_TAG} ${SKIP_FLAG}"
 
             # 토큰으로 push (GitHub App으로 checkout 했어도 push는 토큰이 제일 확실)
-            git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/lucky-gun/kubernetes.git"
+            git remote set-url origin "https://x-access-token:${GITHUB-APP}@github.com/lucky-gun/kubernetes.git"
             git push origin HEAD:main
           '''
         }
