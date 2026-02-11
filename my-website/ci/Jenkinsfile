@@ -14,7 +14,10 @@ spec:
     - -c
     - |
       set -eux
-      apk add --no-cache git curl ca-certificates coreutils yq github-cli openssh-client
+      apk add --no-cache \
+        git curl ca-certificates coreutils openssh-client \
+        python3 py3-pyyaml \
+        github-cli
       update-ca-certificates
       cat
     tty: true
@@ -25,8 +28,6 @@ spec:
   options {
     timeout(time: 20, unit: 'MINUTES')
     disableConcurrentBuilds()
-    // 멀티브랜치/SCM 자동 체크아웃을 안 믿고 명시적으로 하려면 true 유지
-    // 만약 checkout scm 자동으로 이미 잘 되고 있으면 이 옵션을 지워도 됨
     skipDefaultCheckout(true)
   }
 
@@ -39,89 +40,115 @@ spec:
     BASE_BRANCH = "main"
     FILE_PATH   = "my-website/gitops/apps/mediawiki/mediawiki.yaml"
 
-    // ✅ NEW_REPLICAS unset 방지용
     NEW_REPLICAS = "${params.NEW_REPLICAS}"
 
-    // 🔧 여기만 네 Jenkins credentialId로 바꿔줘 (Secret Text)
+    // 🔧 여기를 네 Jenkins Secret Text credentialId로 변경
     GH_TOKEN_CRED_ID = "github-app-token"
   }
 
   stages {
     stage("Checkout") {
       steps {
-        // 같은 repo에서 Jenkinsfile을 읽어오더라도, 작업 디렉토리는 checkout을 명시하는 게 안전함
-        checkout scm
+        container('tools') {
+          checkout scm
+        }
       }
     }
 
     stage("Edit replicas 3 -> NEW_REPLICAS") {
       steps {
-        sh '''
-          set -euo pipefail
-          : "${NEW_REPLICAS:=2}"
-          echo "NEW_REPLICAS=$NEW_REPLICAS"
+        container('tools') {
+          sh '''
+            set -euo pipefail
+            : "${NEW_REPLICAS:=2}"
+            echo "NEW_REPLICAS=$NEW_REPLICAS"
+            test -f "${FILE_PATH}"
 
-          test -f "${FILE_PATH}"
+            python3 - <<'PY'
+import os, sys, yaml
 
-          # spec.replicas == 3 인 경우에만 NEW_REPLICAS로 변경
-          yq -i 'if (has("spec") and .spec.replicas == 3) then .spec.replicas = (env(NEW_REPLICAS) | tonumber) else . end' "${FILE_PATH}"
+path = os.environ["FILE_PATH"]
+new_repl = int(os.environ.get("NEW_REPLICAS", "2"))
 
-          git diff -- "${FILE_PATH}" | tee /tmp/diff.txt
+with open(path, "r", encoding="utf-8") as f:
+    docs = list(yaml.safe_load_all(f))
 
-          # 실제로 replicas 3 -> 변경이 diff에 있어야만 통과 (헛 PR 방지)
-          grep -qE '^-\\s*replicas:\\s*3\\s*$' /tmp/diff.txt
-          grep -qE '^\\+\\s*replicas:\\s*' /tmp/diff.txt
-        '''
+changed = False
+for d in docs:
+    if isinstance(d, dict):
+        spec = d.get("spec")
+        if isinstance(spec, dict) and spec.get("replicas") == 3:
+            spec["replicas"] = new_repl
+            changed = True
+
+if not changed:
+    print("No change made (spec.replicas was not 3). Failing to avoid empty PR.")
+    sys.exit(2)
+
+with open(path, "w", encoding="utf-8") as f:
+    yaml.safe_dump_all(docs, f, sort_keys=False)
+
+print(f"Updated replicas: 3 -> {new_repl}")
+PY
+
+            git diff -- "${FILE_PATH}" | tee /tmp/diff.txt
+            test -s /tmp/diff.txt
+          '''
+        }
       }
     }
 
     stage("Commit & Push branch") {
       steps {
-        withCredentials([string(credentialsId: "${env.GH_TOKEN_CRED_ID}", variable: "GH_TOKEN")]) {
-          sh '''
-            set -euo pipefail
-            : "${NEW_REPLICAS:=2}"
+        container('tools') {
+          withCredentials([string(credentialsId: "${env.GH_TOKEN_CRED_ID}", variable: "GH_TOKEN")]) {
+            sh '''
+              set -euo pipefail
+              : "${NEW_REPLICAS:=2}"
 
-            BRANCH="chore/scale-mediawiki-${NEW_REPLICAS}-${BUILD_NUMBER}"
-            echo "$BRANCH" > /tmp/branch_name.txt
+              BRANCH="chore/scale-mediawiki-${NEW_REPLICAS}-${BUILD_NUMBER}"
+              echo "$BRANCH" > /tmp/branch_name.txt
 
-            git checkout -b "$BRANCH"
-            git config user.name  "jenkins-bot"
-            git config user.email "jenkins-bot@users.noreply.github.com"
+              git checkout -b "$BRANCH"
+              git config user.name  "jenkins-bot"
+              git config user.email "jenkins-bot@users.noreply.github.com"
 
-            git add "${FILE_PATH}"
-            git commit -m "chore(mediawiki): scale replicas to ${NEW_REPLICAS} (pipeline test)"
+              git add "${FILE_PATH}"
+              git commit -m "chore(mediawiki): scale replicas to ${NEW_REPLICAS} (pipeline test)"
 
-            # token으로 push
-            set +x
-            git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
-            git push -u origin "$BRANCH"
-            set -x
-          '''
+              # token으로 push
+              set +x
+              git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
+              git push -u origin "$BRANCH"
+              set -x
+            '''
+          }
         }
       }
     }
 
     stage("Create Pull Request") {
       steps {
-        withCredentials([string(credentialsId: "${env.GH_TOKEN_CRED_ID}", variable: "GH_TOKEN")]) {
-          sh '''
-            set -euo pipefail
-            BRANCH="$(cat /tmp/branch_name.txt)"
+        container('tools') {
+          withCredentials([string(credentialsId: "${env.GH_TOKEN_CRED_ID}", variable: "GH_TOKEN")]) {
+            sh '''
+              set -euo pipefail
+              BRANCH="$(cat /tmp/branch_name.txt)"
 
-            export GITHUB_TOKEN="${GH_TOKEN}"
+              export GITHUB_TOKEN="${GH_TOKEN}"
 
-            PR_URL="$(gh pr create \
-              --repo "${REPO}" \
-              --base "${BASE_BRANCH}" \
-              --head "$BRANCH" \
-              --title "Scale mediawiki replicas: 3 -> ${NEW_REPLICAS} (test)" \
-              --body "MVP test: Jenkins creates PR updating ${FILE_PATH} replicas 3->${NEW_REPLICAS}." \
-            )"
+              PR_URL="$(gh pr create \
+                --repo "${REPO}" \
+                --base "${BASE_BRANCH}" \
+                --head "$BRANCH" \
+                --title "Scale mediawiki replicas: 3 -> ${NEW_REPLICAS} (test)" \
+                --body "MVP test: Jenkins creates PR updating ${FILE_PATH} replicas 3->${NEW_REPLICAS}." \
+              )"
 
-            echo "$PR_URL" > /tmp/pr_url.txt
-            echo "PR created: $PR_URL"
-          '''
+              echo "$PR_URL" > /tmp/pr_url.txt
+              echo "PR created: $PR_URL"
+            '''
+          }
         }
 
         script {
