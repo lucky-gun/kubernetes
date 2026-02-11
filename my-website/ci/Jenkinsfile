@@ -6,13 +6,15 @@ pipeline {
     NEW_REPLICAS = '3'
     NEW_TAG      = 'myblog-beta'
     SKIP_FLAG    = '[skip-gitops]'
-    PUSH_CRED_ID = 'github_pat_push' // 지금 쓰는 PAT (PR 권한도 있어야 함)
+    PUSH_CRED_ID = 'github_pat_push'   // Secret text(PAT)
     BASE_BRANCH  = 'main'
   }
 
   stages {
     stage('Checkout') {
-      steps { checkout scm }
+      steps {
+        checkout scm
+      }
     }
 
     stage('Edit YAML') {
@@ -29,34 +31,34 @@ pipeline {
         '''
       }
     }
-    
-stage('Create PR') {
-  steps {
-    withCredentials([string(credentialsId: "${env.PUSH_CRED_ID}", variable: 'GITHUB_TOKEN')]) {
-      sh '''
-        set -euo pipefail
 
-        if ! git status --porcelain | grep -q .; then
-          echo "No changes."
-          exit 0
-        fi
+    stage('Create PR') {
+      steps {
+        withCredentials([string(credentialsId: "${env.PUSH_CRED_ID}", variable: 'GITHUB_TOKEN')]) {
+          sh '''
+            set -euo pipefail
 
-        git config user.name "jenkins-bot"
-        git config user.email "jenkins-bot@local"
+            if ! git status --porcelain | grep -q .; then
+              echo "No changes."
+              exit 0
+            fi
 
-        BR="gitops/mediawiki-${NEW_TAG}-r${NEW_REPLICAS}-$(date +%Y%m%d-%H%M%S)"
-        git checkout -b "$BR"
+            git config user.name "jenkins-bot"
+            git config user.email "jenkins-bot@local"
 
-        git add "${FILE_PATH}"
-        git commit -m "gitops: mediawiki replicas=${NEW_REPLICAS}, tag=${NEW_TAG} ${SKIP_FLAG}"
+            BR="gitops/mediawiki-${NEW_TAG}-r${NEW_REPLICAS}-$(date +%Y%m%d-%H%M%S)"
+            git checkout -b "$BR"
 
-        git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/lucky-gun/kubernetes.git"
-        git push -u origin "$BR"
+            git add "${FILE_PATH}"
+            git commit -m "gitops: mediawiki replicas=${NEW_REPLICAS}, tag=${NEW_TAG} ${SKIP_FLAG}"
 
-        TITLE="gitops: mediawiki tag=${NEW_TAG}, replicas=${NEW_REPLICAS}"
-        BODY="Automated change by Jenkins.\\n\\n- file: ${FILE_PATH}\\n- tag: ${NEW_TAG}\\n- replicas: ${NEW_REPLICAS}"
+            git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/lucky-gun/kubernetes.git"
+            git push -u origin "$BR"
 
-        cat > payload.json <<EOF
+            TITLE="gitops: mediawiki tag=${NEW_TAG}, replicas=${NEW_REPLICAS}"
+            BODY="Automated change by Jenkins.\\n\\n- file: ${FILE_PATH}\\n- tag: ${NEW_TAG}\\n- replicas: ${NEW_REPLICAS}"
+
+            cat > payload.json <<EOF
 {
   "title": "${TITLE}",
   "head": "${BR}",
@@ -65,23 +67,22 @@ stage('Create PR') {
 }
 EOF
 
-        echo "=== payload.json ==="
-        cat payload.json
+            echo "=== payload.json ==="
+            cat payload.json
 
-        echo "=== Creating PR ==="
-        curl -sS -X POST \
-          -H "Authorization: Bearer ${GITHUB_TOKEN}" \
-          -H "Accept: application/vnd.github+json" \
-          https://api.github.com/repos/lucky-gun/kubernetes/pulls \
-          -d @payload.json \
-          | tee pr.json
+            echo "=== Creating PR ==="
+            curl -sS -X POST \
+              -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              https://api.github.com/repos/lucky-gun/kubernetes/pulls \
+              -d @payload.json \
+              | tee pr.json
 
-        echo "=== PR url ==="
-        grep -oE '"html_url"\\s*:\\s*"[^"]+"' pr.json || true
-      '''
+            echo "=== PR url ==="
+            grep -oE '"html_url"\\s*:\\s*"[^"]+"' pr.json || true
+          '''
+        }
+      }
     }
-  }
-}
-
   }
 }
