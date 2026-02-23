@@ -18,7 +18,7 @@ metadata:
   labels:
     app: mediawiki
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       app: mediawiki
@@ -29,7 +29,7 @@ spec:
     spec:
       containers:
         - name: mediawiki
-          image: luckygun/mediawiki:myblog-beta-v2
+          image: luckygun/mediawiki:myblog-beta
           imagePullPolicy: IfNotPresent
 
           ports:
