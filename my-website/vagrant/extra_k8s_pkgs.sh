@@ -29,16 +29,4 @@ kubectl apply -f $EXTRA_PKGS_ADDR/metallb-native-v0.15.3.yaml
 # metrics server v0.8.0 - insecure mode
 kubectl apply -f $EXTRA_PKGS_ADDR/metrics-server-notls-v0.8.0.yaml
 
-# NFS dir configuration
-#curl $EXTRA_PKGS_ADDR/nfs_exporter.sh | bash -s -- "dynamic-vol"
-
-# csi-driver-nfs v4.12.1 installer
-#kubectl apply -f $EXTRA_PKGS_ADDR/csi-driver-nfs-v4.12.1.yaml
-
-# storageclass installer & set default storageclass
-#kubectl apply -f $EXTRA_PKGS_ADDR/storageclass.yaml 
-
-# setup default storage class due to no mention later on
-#kubectl annotate storageclass managed-nfs-storage storageclass.kubernetes.io/is-default-class=true
-
 
