@@ -1,0 +1,27 @@
+echo ">>>> K8S CNI Start <<<<"
+CILIUM_CLI_VERSION=$(curl -s https://raw.githubusercontent.com/cilium/cilium-cli/main/stable.txt)
+CLI_ARCH=amd64
+if [ "$(uname -m)" = "aarch64" ]; then CLI_ARCH=arm64; fi
+curl -L --fail --remote-name-all https://github.com/cilium/cilium-cli/releases/download/${CILIUM_CLI_VERSION}/cilium-linux-${CLI_ARCH}.tar.gz{,.sha256sum}
+sha256sum --check cilium-linux-${CLI_ARCH}.tar.gz.sha256sum
+sudo tar xzvfC cilium-linux-${CLI_ARCH}.tar.gz /usr/local/bin
+rm -rf cilium-linux-${CLI_ARCH}.tar.gz{,.sha256sum}
+cilium install # 1분 내외 (만약  대역대 충돌 날 경우 helm을 이용하여 대역대 변경 후 진행)
+cilium status
+# 한개만 설치만 하면 됩니다. (순간 헷갈려서)
+
+
+[Trouble Shooting]  (cilium 대역대 충돌 났을 경우)
+kubectl edit configmap cilium-config -n kube-system
+cluster-pool-ipv4-cidr: 변경 (충돌 안나도록) #되도록 kubernetes kubeadm 작용시 cidr 맞추기 cilium 와  -pod-network-cidr
+kubectl rollout restart deployment cilium-operator -n kube-system
+kubectl delete pod -n kube-system -l k8s-app=cilium-operator (또는 직접 삭제)
+systemctl start kubelet
+
+
+또는 
+helm repo add cilium https://helm.cilium.io/
+helm show values cilium/cilium > cilium-values.yaml
+ipv4 cidr 변경 # clusterPoolIPv4PodCIDRList: ["10.0.0.0/8"]
+helm install cilium cilium/cilium --values cilium-values.yaml
+# clusterPoolIPv4PodCIDRList

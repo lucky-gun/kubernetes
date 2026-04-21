@@ -1,0 +1,81 @@
+#!/bin/bash -xe
+echo ">>>> Initial Config Start <<<<"
+ 
+echo "[TASK 1] Change Timezone"
+# Change Timezone
+cd /root
+ln -sf /usr/share/zoneinfo/Asia/Seoul /etc/localtime
+
+echo "[TASK 2] Install Packages & Setting Profile & Bashrc & Go"
+# Setting Profile & Bashrc
+dnf update -y
+dnf install epel-release -y
+dnf install git vim wget tree jq sshpass net-tools nfs-utils bridge-utils sysstat bat bind-utils bash-completion -y
+wget https://github.com/muesli/duf/releases/download/v0.8.1/duf_0.8.1_linux_amd64.rpm
+rpm -Uvh duf_0.8.1_linux_amd64.rpm
+echo 'alias vi=vim' >> /etc/profile
+echo "sudo su -" >> /home/rocky/.bashrc
+echo "alias cat='bat --paging=never'" >> /etc/profile
+# Install Go
+VERSION=1.21.1
+curl -LO https://golang.org/dl/go${VERSION}.linux-amd64.tar.gz
+sudo tar -C /usr/local -xzf go${VERSION}.linux-amd64.tar.gz
+echo 'export PATH=$PATH:/usr/local/go/bin' >> /etc/profile
+
+echo "[TASK 2.5] Setting Local DNS Using Hosts file"  # 나중에 변경 필요
+echo "172.30.100.0 k8s-m1" >> /etc/hosts
+echo "172.30.100.0 k8s-m2" >> /etc/hosts
+echo "172.30.100.0 k8s-m3" >> /etc/hosts
+echo "172.30.110.0 k8s-w1" >> /etc/hosts
+echo "172.30.110.0 k8s-w2" >> /etc/hosts
+echo "172.30.110.0 k8s-w3" >> /etc/hosts
+ 
+echo "[TASK 3] Install containerd.io"
+# Install Runtime - Containerd https://kubernetes.io/docs/setup/production-environment/container-runtimes/
+cat << EOF > /etc/modules-load.d/containerd.conf
+overlay
+br_netfilter
+EOF
+modprobe overlay
+modprobe br_netfilter
+ 
+cat << EOF > /etc/sysctl.d/99-kubernetes-cri.conf
+net.bridge.bridge-nf-call-iptables  = 1
+net.ipv4.ip_forward                 = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+EOF
+sysctl -p
+sysctl --system
+
+dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+dnf install -y containerd
+
+echo "[TASK 4] Using the systemd cgroup driver"
+mkdir -p /etc/containerd
+containerd config default > /etc/containerd/config.toml
+sed -i 's/SystemdCgroup = false/SystemdCgroup = true/g' /etc/containerd/config.toml
+systemctl restart containerd
+
+echo "[TASK 5] Install Kubernetes components (kubeadm, kubelet and kubectl)"
+sudo tee /etc/yum.repos.d/kubernetes.repo <<EOF
+[kubernetes]
+name=Kubernetes
+baseurl=https://pkgs.k8s.io/core:/stable:/v1.31/rpm/
+enabled=1
+gpgcheck=1
+gpgkey=https://pkgs.k8s.io/core:/stable:/v1.31/rpm/repodata/repomd.xml.key
+EOF
+
+dnf install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
+systemctl enable kubelet && systemctl start kubelet
+ 
+#확인 필요
+#swapoff -a # 끄지 않으면
+# The connection to the server 10.0.1.61:6443 was refused - did you specify the right host or port?
+#날 수 있음
+#sed -i '/ swap / s/^\(.*\)$/#/g' /etc/fstab
+#setenforce 0
+#sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
+# https://blog.andreev.it/2023/10/install-kubernetes-with-cri-o-and-cilium-on-rocky-linux-9/
+
+echo ">>>> Initial Config End <<<<"

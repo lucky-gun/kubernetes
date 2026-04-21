@@ -1,0 +1,61 @@
+echo ">>>> K8S Controlplane config Start <<<<"
+ 
+echo "[TASK 1] Initial Kubernetes - Pod CIDR 172.16.0.0/16 , Service CIDR 172.200.0.0/16 , API Server 172.30.100.10"
+kubeadm init --token 123456.1234567890123456 --token-ttl 0 --pod-network-cidr=172.16.0.0/16 --apiserver-advertise-address=$(hostname -I | awk '{print $1}') --service-cidr 172.200.0.0/16 --kubernetes-version=v1.31.0 >> kubeadm-init-result.txt
+ 
+# 일반은 apiserver-advertise-address=$(hostname -I)
+# 멀티는 control-plane-endpoint:6443 --upload-certs
+#--config : 초기화에 사용할 구성 파일을 지정
+#--token : 클러스터에 대한 액세스를 허용하는 토큰을 초기화
+#--pod-network-cidr : 클러스터에 대한 Pod 네트워크 CIDR 범위를 지정
+#--apiserver-advertise-address : API 서버가 퍼블릭 엔드포인트에 대해 알릴 IP 주소를 지정
+#--apiserver-cert-extra-sans : 마스터 노드 인정스에 추가할 DNS 이름을 지정
+#--control-plane-endpoint : 컨트롤 플레인 구성요소가 서로 통신하는데 사용할 엔드포인트를 지정
+#--cri-socket : 사용할 CRI의 소켓을 지정
+ 
+echo "[TASK 2] Setting kube config file"
+mkdir -p /root/.kube
+cp -i /etc/kubernetes/admin.conf /root/.kube/config
+chown $(id -u):$(id -g) /root/.kube/config
+ 
+echo "[TASK 3] Source the completion"
+echo 'source <(kubectl completion bash)' >> /etc/profile
+
+echo "[TASK 4] Alias kubectl to k"
+echo 'alias k=kubectl' >> /etc/profile
+echo 'complete -F __start_kubectl k' >> /etc/profile
+ 
+echo "[TASK 5] Install Kubectx & Kubens & Kubeneat"
+git clone https://github.com/ahmetb/kubectx /opt/kubectx
+ln -s /opt/kubectx/kubens /usr/local/bin/kubens
+ln -s /opt/kubectx/kubectx /usr/local/bin/kubectx
+ 
+echo "[TASK 6] Install Kubeps"
+git clone https://github.com/jonmosco/kube-ps1.git /root/kube-ps1
+cat <<"EOT" >> /root/.bash_profile
+source /root/kube-ps1/kube-ps1.sh
+KUBE_PS1_SYMBOL_ENABLE=true
+KUBE_PS1_SYMBOL_DEFAULT=🐤
+function get_cluster_short() {
+  echo "$1" | cut -d . -f1
+}
+KUBE_PS1_CLUSTER_FUNCTION=get_cluster_short
+KUBE_PS1_SUFFIX=') '
+PS1='$(kube_ps1)'$PS1
+EOT
+
+
+echo "[TASK 7] Install Helm"
+curl -s https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+
+### 밑에건 진행하지말자 문제가 있음
+echo "[TASK 8] Install Packages"
+git clone -b v3.5.15 https://github.com/etcd-io/etcd.git
+cd etcd
+./build.sh #여기서 문제 발생
+echo 'export PATH="$PATH:$(pwd)/bin"' >> /etc/profile
+cd /root
+#kubectl apply -f https://github.com/kubetail-org/kubetail/releases/latest/download/kubetail-clusterauth.yaml
+
+ 
+echo ">>>> K8S Controlplane Config End <<<<"
