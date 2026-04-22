@@ -2,7 +2,7 @@
 
 <img src="./docs/title-image.png" width="700"/>
 
-🔗 Blog: https://lucky-gun.com/category/infra/kubernetes/
+🔗 Blog: [https://lucky-gun.com/category/infra/kubernetes/](https://lucky-gun.com/tag/kubernetes/)
 
 이 저장소는 Kubernetes 학습, 실습, 그리고 실제 운영 환경 구성을 기록한 공간입니다.
 
