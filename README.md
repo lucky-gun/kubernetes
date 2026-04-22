@@ -22,10 +22,3 @@
 |----------|------|
 | cni | CNI 네트워크 구성 |
 | rocky | Rocky Linux 기반 Kubernetes 설치 |
-
-## 🚀 Workflow
-
-1. Infrastructure Provisioning (Terraform)
-2. Kubernetes Cluster Setup (k8s-infra-setup)
-3. Application Deployment (my-website)
-4. CI/CD Pipeline (Jenkins / ArgoCD)
