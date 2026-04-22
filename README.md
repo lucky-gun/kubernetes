@@ -9,7 +9,7 @@ URL : https://lucky-gun.com/category/infra/kubernetes/ <br><br>
 
 1. practice
    1. k8s-infra-setup (ver1, 2) 
-2. my-website
+2. my-website (CI/CD)
 3. index
    1. fast_installation
       1. cni
