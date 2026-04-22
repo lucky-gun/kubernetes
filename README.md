@@ -12,13 +12,18 @@
 | 디렉토리 | 설명 |
 |----------|------|
 | k8s-infra-setup | Kubernetes 클러스터 구축 과정 (ver1, ver2) |
-| my-website | CI/CD 기반 블로그 배포 (현재 운영 중) |
-| index | Kubernetes 관련 참고 자료 정리 |
 
 ---
 
-### ⚡ Fast Installation (빠른 구축)
+### ⚡ index (참고 자료 정리)
 | 디렉토리 | 설명 |
 |----------|------|
-| cni | CNI 네트워크 구성 |
-| rocky | Rocky Linux 기반 Kubernetes 설치 |
+| fast_installation | 빠른 구축을 위한 간단한 코드 정리 |
+
+
+---
+
+### 🔑 my-website
+| 디렉토리 | 설명 |
+|----------|------|
+| -- | CI/CD 기반 블로그 배포 (현재 운영 중) |
