@@ -1,0 +1,8 @@
+env:
+  nginx_proxy_large_client_header_buffers: "8 32k"
+
+  nginx_proxy_proxy_buffer_size: "128k"
+  nginx_proxy_proxy_buffers: "8 256k"
+  nginx_proxy_proxy_busy_buffers_size: "256k"
+
+  nginx_http_large_client_header_buffers: "8 32k"

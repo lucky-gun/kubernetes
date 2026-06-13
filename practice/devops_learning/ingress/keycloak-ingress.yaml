@@ -1,0 +1,29 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+
+metadata:
+  name: keycloak
+  namespace: keycloak
+
+spec:
+  ingressClassName: kong
+
+  tls:
+  - hosts:
+    - keycloak.lucky-gun.com
+
+    secretName: domain-tls
+
+  rules:
+  - host: keycloak.lucky-gun.com
+
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+
+        backend:
+          service:
+            name: keycloak
+            port:
+              number: 8080

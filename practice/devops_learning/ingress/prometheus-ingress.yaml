@@ -1,0 +1,29 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+
+metadata:
+  name: prometheus
+  namespace: monitoring
+
+spec:
+  ingressClassName: kong
+
+  tls:
+  - hosts:
+    - prometheus.lucky-gun.com
+
+    secretName: domain-tls
+
+  rules:
+  - host: prometheus.lucky-gun.com
+
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+
+        backend:
+          service:
+            name: prometheus-server
+            port:
+              number: 80

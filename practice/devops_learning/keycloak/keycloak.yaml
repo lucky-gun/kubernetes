@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak
+  namespace: keycloak
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: keycloak
+  template:
+    metadata:
+      labels:
+        app: keycloak
+    spec:
+      containers:
+      - name: keycloak
+        image: quay.io/keycloak/keycloak:26.6.2
+        args: ["start-dev"] # 개발 테스트 모드 유지
+        env:
+        - name: KC_BOOTSTRAP_ADMIN_USERNAME
+          value: "admin"
+        - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+          value: "admin123"
+
+        # [DB 연결 설정 핵심]
+        - name: KC_DB
+          value: "postgres" # 사용할 DB 종류 명시
+        - name: KC_DB_URL
+          value: "jdbc:postgresql://postgres-service.database.svc.cluster.local:5432/keycloak_db" #실제 DB 이름
+        - name: KC_DB_USERNAME
+          value: "key_admin"
+        - name: KC_DB_PASSWORD
+          value: "key_pass"
+
+        - name: KC_HOSTNAME
+          value: "keycloak.lucky-gun.com"
+        - name: KC_PROXY_HEADERS
+          value: "xforwarded"
+        - name: KC_STICKY_SESSION
+          value: "true"
+        ports:
+        - containerPort: 8080
+          name: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak
+  namespace: keycloak
+spec:
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+  selector:
+    app: keycloak
+  type: ClusterIP

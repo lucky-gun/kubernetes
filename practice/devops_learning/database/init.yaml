@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgresql-init-config
+  namespace: database
+data:
+  init.sql: |
+    -- keycloak
+    CREATE USER key_admin WITH PASSWORD 'key_pass';
+
+    CREATE DATABASE keycloak_db OWNER key_admin;
+
+    GRANT ALL PRIVILEGES ON DATABASE keycloak_db TO key_admin;
+
+    -- harbor
+    CREATE USER hb_admin WITH PASSWORD 'hb_pass';
+
+    CREATE DATABASE harbor_db OWNER hb_admin;
+
+    GRANT ALL PRIVILEGES ON DATABASE harbor_db TO hb_admin;
+
+    -- grafana
+    CREATE USER gf_admin WITH PASSWORD 'gf_pass';
+
+    CREATE DATABASE grafana_db OWNER gf_admin;
+
+    GRANT ALL PRIVILEGES ON DATABASE grafana_db TO gf_admin;

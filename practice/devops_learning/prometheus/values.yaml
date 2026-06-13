@@ -1,0 +1,15 @@
+server:
+  retention: 15d
+  persistentVolume:
+    enabled: true
+    size: 10Gi
+    storageClass: managed-nfs-storage
+  service:
+    type: ClusterIP
+
+alertmanager:
+  enabled: false
+pushgateway:
+  enabled: false
+nodeExporter:
+  enabled: false

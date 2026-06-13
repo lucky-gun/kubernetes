@@ -1,0 +1,54 @@
+adminUser: admin
+adminPassword: admin123
+
+service:
+  type: ClusterIP
+
+ingress:
+  enabled: true
+
+  ingressClassName: kong
+
+  hosts:
+    - grafana-test.lucky-gun.com
+
+  tls:
+    - secretName: domain-tls
+      hosts:
+        - grafana-test.lucky-gun.com
+
+envFromSecret: grafana-oidc-secret
+
+grafana.ini:
+  server:
+    root_url: "https://grafana-test.lucky-gun.com"
+
+  auth:
+    disable_login_form: true
+
+  auth.generic_oauth:
+    enabled: true
+    name: "Keycloak"
+    allow_sign_up: true
+
+    client_id: "grafana"
+    client_secret: "$__env{CLIENT_SECRET}"
+
+    scopes: "openid email profile roles groups"
+
+    auth_url: "https://keycloak.lucky-gun.com/realms/devops/protocol/openid-connect/auth"
+
+    token_url: "http://keycloak.keycloak.svc.cluster.local:8080/realms/devops/protocol/openid-connect/token"
+
+    api_url: "http://keycloak.keycloak.svc.cluster.local:8080/realms/devops/protocol/openid-connect/userinfo"
+
+    role_attribute_path : "contains(groups[*], 'admin') && 'Admin' || contains(groups[*], 'viewer') && 'Viewer' || 'Viewer'"
+
+  database:
+    type: postgres
+    host: postgres-service.database.svc.cluster.local:5432
+    name: grafana_db
+    user: gf_admin
+    password: $__env{GF_DATABASE_PASSWORD}
+    ssl_mode: disable
+    

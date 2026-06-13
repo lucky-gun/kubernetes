@@ -1,0 +1,37 @@
+controller:
+  ingress:
+    enabled: true
+    ingressClassName: kong
+
+    hostname: jenkins.lucky-gun.com
+    tls:
+    - secretName: domain-tls
+      hosts:
+        - "jenkins.lucky-gun.com"
+
+
+  serviceType: ClusterIP
+
+  jenkinsUrl: "https://jenkins.lucky-gun.com"
+
+  admin:
+    createSecret: false
+
+  installLatestPlugins: false
+  installLatestSpecifiedPlugins: false
+  initializeOnce: true
+
+  additionalPlugins:
+    - oic-auth
+    - role-strategy
+    - matrix-auth
+    - github-branch-source
+    - credentials-binding
+    - pipeline-stage-view
+    - http_request
+
+persistence:
+  enabled: true
+  storageClass: "managed-nfs-storage"
+  accessMode: "ReadWriteOnce"
+  size: "3Gi"

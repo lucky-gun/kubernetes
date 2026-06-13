@@ -1,0 +1,62 @@
+externalURL: https://harbor.lucky-gun.com
+
+harborAdminPassword: admin123
+
+expose:
+  type: ingress
+
+  ingress:
+    className: kong
+    hosts:
+      core: harbor.lucky-gun.com
+
+  tls:
+    enabled: true
+    certSource: secret
+    secret:
+      secretName: domain-tls
+
+core:
+  hostAliases:
+    - ip: "192.168.1.13"
+      hostnames:
+        - "keycloak.lucky-gun.com"
+
+database:
+  type: external
+
+  external:
+    host: postgres-service.database.svc.cluster.local
+    port: 5432
+    username: hb_admin
+    password: hb_pass
+    coreDatabase: harbor_db
+    sslmode: "disable"
+
+redis:
+  type: external
+  external:
+    addr: "redis-master.database.svc.cluster.local:6379"
+
+    username: ""
+    password: "DjMacdkXxEL1hFgg7bM1wPIx"
+    coreDatabaseIndex: "0"
+    jobserviceDatabaseIndex: "1"
+    registryDatabaseIndex: "2"
+    trivyAdapterIndex: "5"
+
+persistence:
+  enabled: true
+
+  persistentVolumeClaim:
+    registry:
+      storageClass: managed-nfs-storage
+      size: 2Gi
+
+    trivy:
+      storageClass: managed-nfs-storage
+      size: 2Gi
+
+    jobservice:
+      storageClass: managed-nfs-storage
+      size: 1Gi

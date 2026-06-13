@@ -1,0 +1,29 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+
+metadata:
+  name: argocd
+  namespace: argo
+
+spec:
+  ingressClassName: kong
+
+  tls:
+  - hosts:
+    - argocd.lucky-gun.com
+
+    secretName: domain-tls
+
+  rules:
+  - host: argocd.lucky-gun.com
+
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+
+        backend:
+          service:
+            name: argocd-server
+            port:
+              number: 80

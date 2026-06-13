@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: rbac-demo
+  namespace: boutique
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: rbac-demo
+
+  template:
+    metadata:
+      labels:
+        app: rbac-demo
+
+    spec:
+      containers:
+      - name: app
+        image: luckygun/rbac-demo:v1
+
+        ports:
+        - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: rbac-demo
+  namespace: boutique
+
+spec:
+  selector:
+    app: rbac-demo
+
+  ports:
+  - port: 80
+    targetPort: 8080

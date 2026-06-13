@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-cm
+  namespace: argo
+
+data:
+  url: https://argocd.lucky-gun.com
+
+  oidc.config: |
+    name: Keycloak
+
+    issuer: https://keycloak.lucky-gun.com/realms/devops
+
+    clientID: argocd
+
+    clientSecret: $oidc.keycloak.clientSecret
+
+    requestedScopes:
+      - openid
+      - profile
+      - email
+      - groups

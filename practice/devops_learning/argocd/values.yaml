@@ -1,0 +1,20 @@
+global:
+  domain: argocd.lucky-gun.com
+
+  hostAliases:
+    - ip: "192.168.1.13"
+      hostnames:
+        - keycloak.lucky-gun.com
+
+server:
+  ingress:
+    enabled: false
+
+#configs:
+#  cm:
+#    oidc.config: |
+#      ...
+
+#  rbac:
+#    policy.csv: |
+#      ...
