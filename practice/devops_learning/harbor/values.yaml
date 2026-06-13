@@ -16,11 +16,11 @@ expose:
     secret:
       secretName: domain-tls
 
-core:
-  hostAliases:
-    - ip: "192.168.1.13"
-      hostnames:
-        - "keycloak.lucky-gun.com"
+#core:
+#  hostAliases:
+#    - ip: "192.168.1.13"
+#      hostnames:
+#        - "keycloak.lucky-gun.com"
 
 database:
   type: external
@@ -39,7 +39,7 @@ redis:
     addr: "redis-master.database.svc.cluster.local:6379"
 
     username: ""
-    password: "DjMacdkXxEL1hFgg7bM1wPIx"
+    password: "<redis_password>"
     coreDatabaseIndex: "0"
     jobserviceDatabaseIndex: "1"
     registryDatabaseIndex: "2"

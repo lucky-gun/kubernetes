@@ -1,7 +1,7 @@
 config:
   clientID: kong
-  clientSecret: 7liaengogb2n1LTTtlUU2qvpOw3ZX1hb
-  cookieSecret: c1e908e9189b3e3df34ed36bc7c381b1
+  clientSecret: <client_secret>
+  cookieSecret: <random hex>
 
 extraEnv:
   - name: OAUTH2_PROXY_REDIS_CONNECTION_URL
@@ -27,8 +27,8 @@ extraArgs:
 #  allowed-group: admin
 
 
-hostAliases:
-  - ip: "192.168.1.13"
-    hostnames:
-      - keycloak.lucky-gun.com
+#hostAliases:
+#  - ip: "192.168.1.13"
+#    hostnames:
+#      - keycloak.lucky-gun.com
 
