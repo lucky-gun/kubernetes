@@ -42,7 +42,7 @@ grafana.ini:
 
     api_url: "http://keycloak.keycloak.svc.cluster.local:8080/realms/devops/protocol/openid-connect/userinfo"
 
-    role_attribute_path : "contains(groups[*], 'admin') && 'Admin' || contains(groups[*], 'viewer') && 'Viewer' || 'Viewer'"
+    role_attribute_path : "contains(groups[*], 'grafana-admin') && 'Admin' || contains(groups[*], 'grafana-viewer') && 'Viewer' || 'Viewer'"
 
   database:
     type: postgres
