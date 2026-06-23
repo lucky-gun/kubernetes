@@ -24,6 +24,15 @@ pipeline {
             }
         }
 
+        stage('Retry Test') {
+            steps {
+                retry (3) {
+                    echo 'TRY'
+                    sh 'exit 1'
+                }
+            }
+        }
+        
         stage('Fail Test') {
             steps {
                 sh 'exit 1'
