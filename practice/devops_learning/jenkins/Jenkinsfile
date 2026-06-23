@@ -6,27 +6,27 @@ pipeline {
                 checkout scm
             }
         }
+        stage ('Parallel Test') {
+            parallel {
+                stage('Job A') {
+                    steps {
+                        sh '''
+                        echo START A
+                        sleep 10
+                        echo END A
+                        '''
+                    }
+                }
 
-        stage('Create File') {
-            steps {
-                sh '''
-                echo hello > hello.txt
-                '''
-
-                stash(
-                    name: 'hello-file',
-                    includes: 'hello.txt'
-                )
-            }
-        }
-
-        stage('Restore File') {
-            steps {
-                unstash 'hello-file'
-
-                sh '''
-                cat hello.txt
-                '''
+                stage('Job B') {
+                    steps {
+                        sh '''
+                        echo START B
+                        sleep 10
+                        echo END B
+                        '''
+                    }
+                }
             }
         }
     }
