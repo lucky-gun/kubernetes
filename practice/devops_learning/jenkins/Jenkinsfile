@@ -1,44 +1,14 @@
+@Library('my-library')
 pipeline {
     agent any
+
     stages {
-        stage('Checkout') {
+        stage('Test') {
             steps {
-                checkout scm
-            }
-        }
-
-        stage('Matrix Test') {
-            matrix {
-                axes {
-                    axis {
-                        name 'VERSION'
-                        values 'v1','v2','v3'
-                    }
-                }
-
-                stages {
-                    stage('Print') {
-                        steps {
-                            echo "VERSION=${VERSION}"
-                        }
-                    }
+                script {
+                    sayHello()
                 }
             }
         }
-    }
-
-    post {
-        success {
-            echo 'BUILD SUCCESS'
-        }
-
-        failure {
-            echo 'BUILD FAILURE'
-        }
-        
-        always {
-            echo 'ALWAYS RUN'
-        }
-
     }
 }
