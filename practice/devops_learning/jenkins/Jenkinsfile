@@ -24,11 +24,11 @@ pipeline {
             }
         }
 
-        /*stage('Fail Test') {
+        stage('Fail Test') {
             steps {
                 sh 'exit 1'
             }
-        }*/
+        }
     }
 
     post {
@@ -36,9 +36,9 @@ pipeline {
             echo 'BUILD SUCCESS'
         }
 
-        /*failure {
+        failure {
             echo 'BUILD FAILURE'
-        }*/
+        }
         
         always {
             echo 'ALWAYS RUN'
