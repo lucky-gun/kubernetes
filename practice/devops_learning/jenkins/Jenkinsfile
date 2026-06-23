@@ -6,27 +6,12 @@ pipeline {
                 checkout scm
             }
         }
-        stage ('Parallel Test') {
-            parallel {
-                stage('Job A') {
-                    steps {
-                        sh '''
-                        echo START A
-                        sleep 10
-                        echo END A
-                        '''
-                    }
-                }
 
-                stage('Job B') {
-                    steps {
-                        sh '''
-                        echo START B
-                        sleep 10
-                        echo END B
-                        '''
-                    }
-                }
+        stage('Docker Check') {
+            steps {
+                sh '''
+                docker version
+            '''
             }
         }
     }
