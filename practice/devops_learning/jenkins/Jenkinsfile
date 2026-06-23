@@ -27,15 +27,8 @@ pipeline {
         stage('Retry Test') {
             steps {
                 retry (3) {
-                    echo 'TRY'
-                    sh 'exit 1'
+                    sh 'date'
                 }
-            }
-        }
-        
-        stage('Fail Test') {
-            steps {
-                sh 'exit 1'
             }
         }
     }
