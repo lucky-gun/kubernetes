@@ -16,6 +16,13 @@ pipeline {
                 }
             }
         }
+
+        stage('Approval') {
+            steps {
+                input 'Deploy 진행할까요?'
+                echo 'Approved'
+            }
+        }
     }
 
     post {
