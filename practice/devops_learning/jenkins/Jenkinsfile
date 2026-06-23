@@ -23,5 +23,26 @@ pipeline {
                 echo 'Hello Jenkins SCM'
             }
         }
+
+        #stage('Fail Test') {
+        #    steps {
+        #        sh 'exit 1'
+        #    }
+        #}
+    }
+
+    post {
+        success {
+            echo 'BUILD SUCCESS'
+        }
+
+        #failure {
+        #    echo 'BUILD FAILURE'
+        #}
+        
+        always {
+            echo 'ALWAYS RUN'
+        }
+
     }
 }
