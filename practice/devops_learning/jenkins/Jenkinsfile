@@ -7,11 +7,22 @@ pipeline {
             }
         }
 
-        stage('Docker Check') {
-            steps {
-                sh '''
-                docker version
-            '''
+        stage('Matrix Test') {
+            matrix {
+                axes {
+                    axis {
+                        name 'VERSION'
+                        values 'v1','v2','v3'
+                    }
+                }
+
+                stages {
+                    stage('Print') {
+                        steps {
+                            echo "VERSION=${VERSION}"
+                        }
+                    }
+                }
             }
         }
     }
