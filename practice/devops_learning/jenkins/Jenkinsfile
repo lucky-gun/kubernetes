@@ -7,20 +7,26 @@ pipeline {
             }
         }
 
-        stage('Timeout Test') {
+        stage('Create File') {
             steps {
-                retry(3) {
-                    timeout(time: 30, unit: 'SECONDS') {
-                        sh 'sleep 5'
-                    }
-                }
+                sh '''
+                echo hello > hello.txt
+                '''
+
+                stash(
+                    name: 'hello-file',
+                    includes: 'hello.txt'
+                )
             }
         }
 
-        stage('Approval') {
+        stage('Restore File') {
             steps {
-                input 'Deploy 진행할까요?'
-                echo 'Approved'
+                unstash 'hello-file'
+
+                sh '''
+                cat hello.txt
+                '''
             }
         }
     }
