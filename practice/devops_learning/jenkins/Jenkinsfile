@@ -7,27 +7,10 @@ pipeline {
             }
         }
 
-        stage('Verify') {
+        stage('Timeout Test') {
             steps {
-                sh '''
-                pwd
-                ls -al
-                git branch
-                git log --oneline -3
-                '''
-            }
-        }
-
-        stage('Hello') {
-            steps {
-                echo 'Hello Jenkins SCM'
-            }
-        }
-
-        stage('Retry Test') {
-            steps {
-                retry (3) {
-                    sh 'date'
+                timeout(time: 10, unit: 'SECONDS') {
+                    sh 'sleep 20'
                 }
             }
         }
