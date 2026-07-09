@@ -1,0 +1,66 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+
+metadata:
+  name: my-app
+
+spec:
+
+  replicas: 10
+
+  revisionHistoryLimit: 3
+
+  selector:
+    matchLabels:
+      app: my-app
+
+  template:
+    metadata:
+      labels:
+        app: my-app
+
+    spec:
+      containers:
+      - name: my-app
+        image: docker.io/luckygun/devops-learning:v1
+
+  strategy:
+    canary:
+      trafficRouting:
+        istio:
+          virtualService:
+            name: my-app
+            routes:
+              - primary   # 해당 이름은 VirtualService의 http name과 도치되어집니다.
+
+      steps:
+        - setWeight: 30
+        - pause: {}
+        - setWeight: 60
+        - pause: {}
+        - setWeight: 100
+
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: my-app
+spec:
+  hosts:
+    - my-app.example.com
+
+  gateways:
+    - my-gateway
+
+  http:
+    - name: primary   # 해당 부분과 대치 됨
+      route:
+        - destination:
+            host: my-app
+            subset: stable
+          weight: 100
+
+        - destination:
+            host: my-app
+            subset: canary
+          weight: 0

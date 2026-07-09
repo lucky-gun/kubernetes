@@ -6,10 +6,14 @@ server:
     storageClass: managed-nfs-storage
   service:
     type: ClusterIP
+  extraFlags:
+    - web.enable-remote-write-receiver
 
 alertmanager:
   enabled: false
-pushgateway:
+prometheus-pushgateway:
   enabled: false
-nodeExporter:
+prometheus-node-exporter:
+  enabled: false
+kube-state-metrics:
   enabled: false

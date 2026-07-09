@@ -1,0 +1,19 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: frontend-network-delay
+  namespace: default
+spec:
+  action: delay
+  mode: all
+
+  selector:
+    labelSelectors:
+      app.kubernetes.io/name: frontend-podinfo
+
+  delay:
+    latency: "200ms"
+    correlation: "100"
+    jitter: "50ms"
+
+  duration: "2m"

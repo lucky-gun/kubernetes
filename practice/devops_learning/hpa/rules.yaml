@@ -1,0 +1,71 @@
+prometheus:
+  url: http://prometheus-server.monitoring.svc
+  port: 80 
+
+rules:
+  default: false
+
+  custom:
+  - seriesQuery: 'http_requests_total{namespace!="",pod!=""}'
+
+    resources:
+      overrides:
+        namespace:
+          resource: namespace
+        pod:
+          resource: pod
+
+    name:
+      matches: "^http_requests_total$"
+      as: "http_requests_per_second"
+
+    metricsQuery: |
+      sum( rate(http_requests_total{<<.LabelMatchers>>}[5m]) ) by (<<.GroupBy>>)
+
+  - seriesQuery: 'container_network_receive_bytes_total{namespace!="",pod!=""}'
+
+    resources:
+      overrides:
+        namespace:
+          resource: namespace
+        pod:
+          resource: pod
+
+    name:
+      matches: "^container_network_receive_bytes_total$"
+      as: "network_receive_bytes"
+
+    metricsQuery: |
+      sum( rate(container_network_receive_bytes_total{<<.LabelMatchers>>}[5m]) ) by (<<.GroupBy>>)
+
+  - seriesQuery: 'container_network_transmit_bytes_total{namespace!="",pod!=""}'
+
+    resources:
+      overrides:
+        namespace:
+          resource: namespace
+        pod:
+          resource: pod
+
+    name:
+      matches: "^container_network_transmit_bytes_total$"
+      as: "network_transmit_bytes"
+
+    metricsQuery: |
+      sum( rate(container_network_transmit_bytes_total{<<.LabelMatchers>>}[5m]) ) by (<<.GroupBy>>)
+
+  - seriesQuery: 'active_connections{namespace!="",pod!=""}'
+
+    resources:
+      overrides:
+        namespace:
+          resource: namespace
+        pod:
+          resource: pod
+
+    name:
+      matches: "^active_connections$"
+      as: "active_connections"
+
+    metricsQuery: |
+      avg( active_connections{<<.LabelMatchers>>} ) by (<<.GroupBy>>)

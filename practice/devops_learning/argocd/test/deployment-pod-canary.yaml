@@ -1,0 +1,51 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+
+metadata:
+  name: my-app
+
+spec:
+
+  replicas: 10
+
+  revisionHistoryLimit: 3
+
+  selector:
+    matchLabels:
+      app: my-app
+
+  template:
+    metadata:
+      labels:
+        app: my-app
+
+    spec:
+      containers:
+      - name: my-app
+        image: docker.io/luckygun/devops-learning:v2
+
+  strategy: # 절대 빠지면 안됩니다.
+    canary:
+      maxSurge: 1
+      maxUnavailable: 0
+      steps:
+        - setWeight: 33
+        - pause: {}
+        - setWeight: 66
+        - pause: {}
+        - setWeight: 100
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-app
+
+spec:
+  selector:
+    app: my-app
+
+  ports:
+    - port: 80
+      targetPort: 80
+
+  type: LoadBalancer
